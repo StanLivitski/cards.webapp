@@ -1,0 +1,18 @@
+[submodule "runtime.src"]
+	path = runtime.src
+	url = git@github.com:StanLivitski/python-runtime.git
+[submodule "collections.src"]
+	path = collections.src
+	url = git@github.com:StanLivitski/EPyColl.git
+[submodule "comety.src"]
+	path = comety.src
+	url = git@github.com:StanLivitski/Comety.git
+[submodule "scaler"]
+	path = scaler
+	url = git@github.com:StanLivitski/scaler.git
+[submodule "downloads/responsive-playing-cards"]
+	path = downloads/responsive-playing-cards
+	url = git@github.com:StanLivitski/responsive-playing-cards.git
+[submodule "downloads/svg-card-backs"]
+	path = downloads/svg-card-backs
+	url = git@github.com:StanLivitski/svg-card-backs.git
