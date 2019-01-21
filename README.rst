@@ -35,7 +35,7 @@ To run this application, you need the following software installed
 on your device:
 
 .. raw:: html
-
+ 
  <style type="text/css"><!--
   td { padding: 0; }
   td a { font-size: small; }
