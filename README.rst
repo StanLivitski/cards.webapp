@@ -36,10 +36,10 @@ on your device:
 
 .. raw:: html
 
- <style type="text/css">
+ <style type="text/css"><!--
   td { padding: 0; }
   td a { font-size: small; }
- </style>
+ --></style>
 
 
 +---------------------------------------------------+----------+
