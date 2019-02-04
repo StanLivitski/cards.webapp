@@ -1,20 +1,22 @@
-  0. "Commons Clause" License Condition v1.0
+  0. "Commons Clause" License Condition
 
        The Software is provided to you by the Licensor under the License,
        as defined below, subject to the following condition.
 
        Without limiting other conditions in the License, the grant of rights
        under the License will not include, and the License does not grant to
-       you, the right to Sell the Software.
+       you, the right to Sell the Software or use it for gambling.
 
        For purposes of the foregoing, "Sell" means practicing any or all of
        the rights granted to you under the License to provide to third parties,
        for a fee or other consideration (including without limitation fees for
        hosting or consulting/ support services related to the Software), a
        product or service whose value derives, entirely or substantially, from
-       the functionality of the Software. Any license notice or attribution
-       required by the License must also include, or refer to, this Commons
-       Clause License Condition notice.
+       the functionality of the Software. In addition, any use of the Software
+       to engage in, or facilitate, gambling or operate any kind of a gambling
+       facility or service, is not permitted by this License.
+       Any license notice or attribution required by the License must also
+       include, or refer to, this Commons Clause License Condition notice.
 
 
 
@@ -29,7 +31,7 @@
    1. Definitions.
 
       "License" shall mean the terms and conditions for use, reproduction,
-      and distribution as defined by Sections 1 through 10 of this document.
+      and distribution as defined by Sections 0 through 10 of this document.
 
       "Licensor" shall mean the copyright owner or entity authorized by
       the copyright owner that is granting the License.
@@ -148,8 +150,8 @@
       any Contribution intentionally submitted for inclusion in the Work
       by You to the Licensor shall be under the terms and conditions of
       this License, without any additional terms or conditions.
-      The "Commons Clause" Condition in section 0 hereof restricting the
-      right to Sell the Software shall not apply to such Contributions.
+      The "Commons Clause" Condition in section 0 hereof shall not apply
+      to such Contributions.
       Notwithstanding the above, nothing herein shall supersede or modify
       the terms of any separate license agreement you may have executed
       with Licensor regarding your Contributions.
@@ -204,14 +206,14 @@
           or contributory patent infringement, as of the date such litigation
           is filed.
 
-      The provisions of sections 1, 6, 7, and 8 of this License shall survive
-      its termination.
+      The provisions of sections 0, 1, 6, 7, and 8 hereof shall survive
+      termination of this License.
 
    END OF TERMS AND CONDITIONS
 
-   APPENDIX: How to apply the Apache License to your work.
+   APPENDIX: How to apply this License to your work.
 
-      To apply the Apache License to your work, attach the following
+      To apply this License to your work, attach the following
       boilerplate notice, with the fields enclosed by brackets "[]"
       replaced with your own identifying information. (Don't include
       the brackets!)  The text should be enclosed in the appropriate
@@ -228,6 +230,11 @@
    a copy of the License at
 
     https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE
+
+   The grant of rights under the License will not include, and the License
+   does not grant to you, the right to Sell the Software, or use it for
+   gambling, with the exception of certain additions or modifications
+   to the Software submitted to the Licensor by third parties.
 
    Unless required by applicable law or agreed to in writing, software
    distributed under the License is distributed on an "AS IS" BASIS,
