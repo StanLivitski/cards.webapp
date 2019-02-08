@@ -1,0 +1,134 @@
+Web application for multiplayer card games.
+Copyright 2015-2019 Stan Livitski
+
+Licensed under the Apache License, Version 2.0 with modifications
+and the "Commons Clause" Condition, (the "License"); you may not
+use this software except in compliance with the License. You may obtain
+a copy of the License at
+
+ https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE
+
+The grant of rights under the License will not include, and the License
+does not grant to you, the right to Sell the Software, or use it for
+gambling, with the exception of certain additions or modifications
+to the Software submitted to the Licensor by third parties.
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include EPyColl
+   Structures and tools that organize and
+        transform application data stored in memory.
+   Copyright 2016 Stan Livitski
+   http://livitski.com || https://github.com/StanLivitski
+
+   Licensed under the Apache License, Version 2.0 with modifications,
+   (the "License"); you may not use EPyColl software except in compliance
+   with the License. You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/StanLivitski/EPyColl/master/LICENSE
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include Comety
+   A simple toolkit for building event-driven web applications
+   Copyright 2016, 2017 Stan Livitski
+   http://livitski.com || https://github.com/StanLivitski
+
+   Licensed under the Apache License, Version 2.0 with modifications,
+   (the "License"); you may not use Comety software except in compliance
+   with the License. You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/StanLivitski/Comety/master/LICENSE
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include Scaler
+   A Javascript library for responsive layout of sites and
+            web apps consistent across devices
+   Copyright © 2017 Stan Livitski
+
+   Licensed under the Apache License, Version 2.0 with modifications,
+   (the "License"); you may not use Scaler software except in compliance
+   with the License. You may obtain a copy of the License at
+
+    https://raw.githubusercontent.com/StanLivitski/scaler/master/LICENSE
+
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include Bootstrap
+	http://getbootstrap.com
+	Licensed under the MIT License  
+
+	Copyright 2011-2019 Twitter, Inc.
+	Copyright 2011-2019 The Bootstrap Authors
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of Bootstrap software and associated documentation files (the "Software"), to
+ deal in the Software without restriction, including without limitation the
+ rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ sell copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include jQuery JavaScript Library
+	http://jquery.com/
+	Licensed under the MIT License  
+
+	Copyright JS Foundation and other contributors, https://js.foundation/
+
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of jQuery software and associated documentation files (the "Software"), to
+ deal in the Software without restriction, including without limitation the
+ rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+ sell copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+
+ The above copyright notice and this permission notice shall be included in
+ all copies or substantial portions of the Software.
+
+-------------------------------------------------------------------------------
+The distribution of this software may include SVG Playing Cards
+	https://github.com/StanLivitski/responsive-playing-cards
+	by Chris Aguilar, Byron Knoll, Mike Hall, Warren Lockhart,
+	and Stan Livitski.
+
+	Licensed under GNU LGPL, see
+	https://github.com/StanLivitski/responsive-playing-cards/blob/master/LICENSE
+	and
+	http://www.gnu.org/licenses/gpl.html
+
+-------------------------------------------------------------------------------
+The distribution of this software may include svg-card-backs,
+	A fork of https://sourceforge.net/projects/svg-cards/ version 1.1. 
+	https://github.com/StanLivitski/svg-card-backs/
+	by David Bellot, Brigitte Bigi, and Stan Livitski.
+
+	Licensed under GNU LGPL, see
+	https://github.com/StanLivitski/responsive-playing-cards/blob/master/LICENSE
+	and
+	http://www.gnu.org/licenses/gpl.html
+
+	
