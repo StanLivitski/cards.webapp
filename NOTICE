@@ -92,6 +92,14 @@ The distribution of this software may include Bootstrap
  The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
 -------------------------------------------------------------------------------
 The distribution of this software may include jQuery JavaScript Library
 	http://jquery.com/
@@ -109,6 +117,14 @@ The distribution of this software may include jQuery JavaScript Library
  The above copyright notice and this permission notice shall be included in
  all copies or substantial portions of the Software.
 
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ THE SOFTWARE.
+
 -------------------------------------------------------------------------------
 The distribution of this software may include SVG Playing Cards
 	https://github.com/StanLivitski/responsive-playing-cards
@@ -119,6 +135,12 @@ The distribution of this software may include SVG Playing Cards
 	https://github.com/StanLivitski/responsive-playing-cards/blob/master/LICENSE
 	and
 	http://www.gnu.org/licenses/gpl.html
+	for details.
+
+    SVG Playing Cards is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 
 -------------------------------------------------------------------------------
 The distribution of this software may include svg-card-backs,
@@ -130,5 +152,10 @@ The distribution of this software may include svg-card-backs,
 	https://github.com/StanLivitski/responsive-playing-cards/blob/master/LICENSE
 	and
 	http://www.gnu.org/licenses/gpl.html
+	for details.
 
+    svg-card-backs is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
 	
