@@ -1,0 +1,56 @@
+{% comment %}
+{# Copyright © 2016, 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% get_current_language as lang_code %}
+
+<!DOCTYPE html>
+<html lang="{{ lang_code }}">
+<head>
+	<meta charset="utf-8" />
+	<meta name="ROBOTS" content="NOINDEX,NOFOLLOW" />
+	<title>{% trans "Join a game" %}</title>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script type="text/javascript"><!--
+    $(function()
+    {
+    	if(!document.cookie)
+    		$("#cookieError").show();
+    	else
+    		$("#admit").submit();
+    });
+    // --></script>
+</head>
+<body>{# TODO: adorn these messages using a template #}
+    <noscript>
+    {% trans "Please enable JavaScript in your browser and try again." %}
+    </noscript>
+    <div style="display: none" id="cookieError">
+    {% trans "Please enable cookies in your browser and try again." %}
+    </div>
+	<form method="POST" style="display: none" id="admit">
+		{% csrf_token %}{#	<input type="submit" value="Continue ..." /> #}
+	</form>
+</body>
+</html>

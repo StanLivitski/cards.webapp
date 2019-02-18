@@ -1,0 +1,243 @@
+# Russian messages for `cards.webapp`, a multi-device card game.
+# Copyright © 2016, 2017, 2018 Stan Livitski
+# 
+# Licensed under the Apache License, Version 2.0 with modifications
+# and the "Commons Clause" Condition, (the "License"); you may not
+# use this file except in compliance with the License. You may obtain
+# a copy of the License at
+# 
+#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE
+# 
+# The grant of rights under the License will not include, and the License
+# does not grant to you, the right to Sell the Software, or use it for
+# gambling, with the exception of certain additions or modifications
+# to the Software submitted to the Licensor by third parties.
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2017-07-08 20:24-0400\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
+"%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
+
+# NOTE: line numbers below may be inaccurate. Please refer to the English
+#  translation file for accurate numbers.
+#: durak_ws/intro.py:450
+msgid ""
+"You entered an invalid URL or had this page open in multiple browser "
+"windows.\n"
+" Please check the URL or use the existing window with this application."
+msgstr ""
+"Вы ввели неверный адрес или открыли эту страницу в нескольких окнах.\n"
+" Пожалуйста, проверьте адрес либо перейдите в другое окно."
+
+#: durak_ws/table.py:52
+msgid "attacks"
+msgstr "ходит"
+
+#: durak_ws/table.py:52
+msgid "you attack"
+msgstr "ваш ход"
+
+#: durak_ws/table.py:53
+msgid "defends"
+msgstr "отбивается"
+
+#: durak_ws/table.py:53
+msgid "you defend"
+msgstr "вы отбиваетесь"
+
+#: durak_ws/table.py:54
+msgid "collects"
+msgstr "принимает"
+
+#: durak_ws/table.py:54
+msgid "you collect"
+msgstr "вы принимаете"
+
+#: durak_ws/table.py:55
+msgid "quits"
+msgstr "дал отбой"
+
+#: durak_ws/table.py:55
+msgid "you quit"
+msgstr "вы дали отбой"
+
+#: durak_ws/table.py:175
+#, python-format
+msgid "Unknown table layout: \"%s\""
+msgstr "Неопознанный форм-фактор игрового стола: \"%s\""
+
+#: durak_ws/templates/durak/admit.html:24
+#: durak_ws/templates/durak/invitation.html:26
+msgid "Join a game"
+msgstr "Вступить в игру"
+
+#: templates/durak/admit.html:38
+msgid "Please enable JavaScript in your browser and try again."
+msgstr ""
+"Включите поддержку JavaScript в вашем браузере или"
+" откройте эту страницу в браузере с поддержкой JavaScript."
+
+#: templates/durak/admit.html:41
+msgid "Please enable cookies in your browser and try again."
+msgstr ""
+"Включите поддержку куки в вашем браузере или"
+" откройте эту страницу в браузере с поддержкой куки."
+
+#: templates/durak/intro.html:18
+msgid "Start a Durak game"
+msgstr "Подготовка к игре в дурака"
+
+#: templates/durak/intro.html:83
+msgid "Error setting up game"
+msgstr "Ошибка при подготовке к игре"
+
+#: templates/durak/intro.html:90
+msgid "Ok"
+msgstr "Продолжить"
+
+#: templates/durak/intro.html:108
+msgid "Confirm nameless players"
+msgstr "Обнаружены безымянные игроки"
+
+#: templates/durak/intro.html:111
+msgid "Player(s)"
+msgstr "Игрок(и)"
+
+#: templates/durak/intro.html:113
+msgid "have not entered their names."
+msgstr "не ввел(и) свои имена"
+
+#: templates/durak/intro.html:114
+msgid "Start the game with nameless players?"
+msgstr "Начать игру с безымянными игроками?"
+
+#: templates/durak/intro.html:118
+msgid "Cancel"
+msgstr "Отменить"
+
+#: templates/durak/intro.html:121
+msgid "Yes"
+msgstr "Да"
+
+#: templates/durak/intro.html:147
+msgid "Enter name"
+msgstr "Введите имя"
+
+#: durak_ws/templates/durak/intro.html:152
+#: durak_ws/templates/durak/table/opponent.html:41
+#, python-format
+msgid "Player %(no)s"
+msgstr "Игрок %(no)s"
+
+#: models.py:391 templates/durak/intro.html:170
+msgid "you"
+msgstr "это вы"
+
+#: models.py:392 models.py:1378 models.py:1380 models.py:1409
+msgid "expected"
+msgstr "ожидается"
+
+#: models.py:393 models.py:1382
+msgid "joined"
+msgstr "на связи"
+
+#: templates/durak/intro.html:187
+msgid "Start game"
+msgstr "Начать игру"
+
+#: templates/durak/intro.html:199
+msgid ", "
+msgstr ""
+
+#: templates/durak/intro.html:226
+#, python-format
+msgid ""
+"Please copy or download this URL and\n"
+"ask %(player)s to open it in his/her browser:"
+msgstr ""
+"Скопируйте или скачайте и передайте этот адрес,\n"
+"чтобы %(player)s открыл(а) его в свём браузере:"
+
+#: templates/durak/intro.html:228
+#, python-format
+msgid ""
+"Please copy or download this URL and ask\n"
+"Player %(no)s to open it in his/her browser:"
+msgstr ""
+"Скопируйте или скачайте и передайте этот адрес,\n"
+"чтобы Игрок %(no)s открыл его в свём браузере:"
+
+#: durak_ws/templates/durak/intro.html:237
+#: durak_ws/templates/durak/intro.html:240
+msgid "Download"
+msgstr "Скачать"
+
+#: durak_ws/templates/durak/intro.html:253
+#: durak_ws/templates/durak/table/buttons.html:31
+msgid "Settings"
+msgstr "Параметры"
+
+#: templates/durak/intro.html:260
+msgid "Player count"
+msgstr "Число игроков"
+
+#: templates/durak/intro.html:305
+msgid "Please enter an integer between #min and #max."
+msgstr "Введите целое число от #min до #max включительно."
+
+#: templates/durak/intro.html:352
+msgid "Connect players to"
+msgstr "Адрес для других игроков"
+
+#: templates/durak/intro.html:364
+msgid "Other ..."
+msgstr "Другой ..."
+
+#: templates/durak/intro.html:371
+msgid "... other destination"
+msgstr "... другой адрес"
+
+#: templates/durak/intro.html:373
+msgid "name or address"
+msgstr "имя или IP-адрес"
+
+#: templates/durak/intro.html:405
+msgid "Please enter a host name or address."
+msgstr "Необходимо ввести имя или IP-адрес устройства"
+
+#: templates/durak/intro.html:452
+msgid "Messages"
+msgstr "Сообщения"
+
+#: templates/durak/invitation.html:30
+msgid "Click here to join the game"
+msgstr "Нажмите чтобы вступить в игру"
+
+#: templates/durak/table.html:19
+msgid "Durak game"
+msgstr "Игра в дурака"
+
+#: durak_ws/templates/durak/table/buttons.html:28
+msgid "Give up"
+msgstr "Принимаю"
+
+#: durak_ws/templates/durak/table/buttons.html:29
+msgid "End turn"
+msgstr "Отбой"

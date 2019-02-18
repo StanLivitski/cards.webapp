@@ -1,0 +1,92 @@
+{% comment %}
+{# Copyright © 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% comment %}
+{# Template module that displays names and card backs for opponents #}
+{# arranged in a column on the game page. #}
+{% endcomment %}
+{% if tableLayout == '4x3' %}
+		<div style="position: relative; background: transparent;
+			height: 22.5%; width: 100%;" class="scaler" data-sc-height="9/8 * CH"> 
+			{% include 'durak/table/opponent.html' with index=4 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 2%;  width: 100%;" class="scaler" data-sc-height="VS1"></div> 
+
+		<div style="position: relative; background: transparent;
+			height: 22.5%; width: 100%;" class="scaler" data-sc-height="9/8 * CH"> 
+			{% include 'durak/table/opponent.html' with index=5 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 2%;  width: 100%;" class="scaler" data-sc-height="VS1"></div> 
+
+		<div style="position: relative; background: transparent;
+			height: 22.5%; width: 100%;" class="scaler" data-sc-height="9/8 * CH"> 
+			{% include 'durak/table/opponent.html' with index=6 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 2%;  width: 100%;" class="scaler" data-sc-height="VS1"></div> 
+
+		<div style="position: relative; background: transparent;
+			height: 22.5%; width: 100%;" class="scaler" data-sc-height="9/8 * CH"> 
+			{% include 'durak/table/opponent.html' with index=7 %}
+		</div>
+{% else %}{# 9x16 layout #}
+		<div style="position: relative; background: transparent;
+			height: 11.933%; width: 100%;" class="scaler" data-sc-height="CH + LH"> 
+			{% include 'durak/table/opponent.html' with index=3 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+
+		<div style="position: relative; background: transparent;
+			height: 11.933%; width: 100%;" class="scaler" data-sc-height="CH + LH"> 
+			{% include 'durak/table/opponent.html' with index=4 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+
+		<div style="position: relative; background: transparent;
+			height: 11.933%; width: 100%;" class="scaler" data-sc-height="CH + LH"> 
+			{% include 'durak/table/opponent.html' with index=5 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+
+		<div style="position: relative; background: transparent;
+			height: 11.933%; width: 100%;" class="scaler" data-sc-height="CH + LH"> 
+			{% include 'durak/table/opponent.html' with index=6 %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+			height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+
+		<div style="position: relative; background: transparent;
+			height: 11.933%; width: 100%;" class="scaler" data-sc-height="CH + LH"> 
+			{% include 'durak/table/opponent.html' with index=7 %}
+		</div>
+{% endif %}{# layout switch #}

@@ -1,0 +1,229 @@
+# English messages for `cards.webapp`, a multi-device card game.
+# Copyright © 2015, 2016, 2017, 2018 Stan Livitski
+# 
+# Licensed under the Apache License, Version 2.0 with modifications
+# and the "Commons Clause" Condition, (the "License"); you may not
+# use this file except in compliance with the License. You may obtain
+# a copy of the License at
+# 
+#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE
+# 
+# The grant of rights under the License will not include, and the License
+# does not grant to you, the right to Sell the Software, or use it for
+# gambling, with the exception of certain additions or modifications
+# to the Software submitted to the Licensor by third parties.
+# 
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# 
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2018-12-30 19:45-0500\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+#: durak_ws/intro.py:450
+msgid ""
+"You entered an invalid URL or had this page open in multiple browser "
+"windows.\n"
+" Please check the URL or use the existing window with this application."
+msgstr ""
+
+#: durak_ws/table.py:52
+msgid "attacks"
+msgstr ""
+
+#: durak_ws/table.py:52
+msgid "you attack"
+msgstr ""
+
+#: durak_ws/table.py:53
+msgid "defends"
+msgstr ""
+
+#: durak_ws/table.py:53
+msgid "you defend"
+msgstr ""
+
+#: durak_ws/table.py:54
+msgid "collects"
+msgstr ""
+
+#: durak_ws/table.py:54
+msgid "you collect"
+msgstr ""
+
+#: durak_ws/table.py:55
+msgid "quits"
+msgstr ""
+
+#: durak_ws/table.py:55
+msgid "you quit"
+msgstr ""
+
+#: durak_ws/table.py:175
+#, python-format
+msgid "Unknown table layout: \"%s\""
+msgstr ""
+
+#: durak_ws/templates/durak/admit.html:24
+#: durak_ws/templates/durak/invitation.html:26
+msgid "Join a game"
+msgstr ""
+
+#: durak_ws/templates/durak/admit.html:38
+msgid "Please enable JavaScript in your browser and try again."
+msgstr ""
+
+#: durak_ws/templates/durak/admit.html:41
+msgid "Please enable cookies in your browser and try again."
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:18
+msgid "Start a Durak game"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:83
+msgid "Error setting up game"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:90
+msgid "Ok"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:108
+msgid "Confirm nameless players"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:111
+msgid "Player(s)"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:113
+msgid "have not entered their names."
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:114
+msgid "Start the game with nameless players?"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:118
+msgid "Cancel"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:121
+msgid "Yes"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:147
+msgid "Enter name"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:152
+#: durak_ws/templates/durak/table/opponent.html:41
+#, python-format
+msgid "Player %(no)s"
+msgstr ""
+
+#: models.py:391 templates/durak/intro.html:170
+msgid "you"
+msgstr ""
+
+#: models.py:392 models.py:1378 models.py:1380 models.py:1409
+msgid "expected"
+msgstr ""
+
+#: models.py:393 models.py:1382
+msgid "joined"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:187
+msgid "Start game"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:199
+msgid ", "
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:226
+#, python-format
+msgid ""
+"Please copy or download this URL and\n"
+"ask %(player)s to open it in his/her browser:"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:228
+#, python-format
+msgid ""
+"Please copy or download this URL and ask\n"
+"Player %(no)s to open it in his/her browser:"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:237
+#: durak_ws/templates/durak/intro.html:240
+msgid "Download"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:253
+#: durak_ws/templates/durak/table/buttons.html:31
+msgid "Settings"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:260
+msgid "Player count"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:305
+msgid "Please enter an integer between #min and #max."
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:352
+msgid "Connect players to"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:364
+msgid "Other ..."
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:371
+msgid "... other destination"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:373
+msgid "name or address"
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:405
+msgid "Please enter a host name or address."
+msgstr ""
+
+#: durak_ws/templates/durak/intro.html:452
+msgid "Messages"
+msgstr ""
+
+#: durak_ws/templates/durak/invitation.html:30
+msgid "Click here to join the game"
+msgstr ""
+
+#: durak_ws/templates/durak/table.html:19
+msgid "Durak game"
+msgstr ""
+
+#: durak_ws/templates/durak/table/buttons.html:28
+msgid "Give up"
+msgstr ""
+
+#: durak_ws/templates/durak/table/buttons.html:29
+msgid "End turn"
+msgstr ""

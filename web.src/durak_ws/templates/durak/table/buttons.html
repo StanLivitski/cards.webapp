@@ -1,0 +1,89 @@
+{% comment %}
+{# Copyright © 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% comment %}
+{# Template module that displays the current player's action buttons #}
+{# on the game page. #}
+{% endcomment %}
+{% load collections %}
+{% load i18n %}
+	<form style="display: inline;" id="form-game-control">
+		{% csrf_token %}
+		<input type="hidden" name="action" value="" />
+		<input type="hidden" name="args" value="" />
+		<button type="button" id="concede" data-sc-font-size="FS"
+			data-sc-padding="[Math.round(FS/6), Math.round(FS/2)]"
+			disabled="disabled" class="btn scaler active
+			 {% if tableLayout == '4x3' %}btn-sm{% else %}btn-xs{% endif %}
+			 {% if player.status == 'defending' or player.status == 'collecting' %}
+			 btn-danger">{% trans "Give up" %}
+			{% else %}btn-success">{% trans "End turn" %}
+			{% endif %}</button>
+		<button type="button" {% trans "Settings" as settings_caption %}
+	        aria-label="{{settings_caption}}" title="{{settings_caption}}"
+			data-sc-font-size="FS" class="btn btn-default scaler active btn-xs"
+			data-sc-padding="[Math.round(FS/6), Math.round(FS/2)]">
+	        <span class="glyphicon glyphicon-cog scaler"
+		        data-sc-top="Math.round(FS/6)" aria-hidden="true"></span>
+        </button>
+	{% with status=statum|get:player.status %}{% if status %}
+		<span class="glyphicon {{status.0}} scaler" aria-hidden="true"
+			 title="{{status.2}}" data-sc-top="Math.round(FS/4)" style="color: white"
+			 data-sc-padding="[Math.round(FS/6), Math.round(FS/2)]"
+			 data-sc-font-size="FS"></span>
+		<span class="sr-only">{{status.2}}</span>
+	{% endif %}{% endwith %}
+	</form>
+	<script type="text/javascript"><!--
+		$(function() {
+			if (playerStatus != 'quit'
+				&& playerStatus != 'collecting'
+				&& hasCardsOnTable())
+				$('#concede').removeAttr('disabled');
+			else
+				$('#concede').attr('disabled', 'disabled');
+		});
+		$('#concede').click(function(event) {
+			if (undefined != moveRequest)
+				return;
+			$("#form-game-control input[name='action']").val('concede');
+			$("#form-game-control input[name='args']").val('');
+			moveRequest = $.post("{% url 'table-updates' %}",
+					$("#form-game-control").serialize());
+			moveRequest
+				.always(function()
+				{
+					$("#form-game-control input[name='action']").val('');
+					$("#form-game-control input[name='args']").val('');
+				})
+				.fail(function(jqXHR, textStatus, errorThrown)
+				{
+					if (console instanceof Object && 'error' in console)
+						console.error(
+							'Concession request ' +
+							(null == textStatus ? 'failed' : textStatus) +
+							(null == errorThrown ? '' : ': ' + errorThrown)
+						);
+					moveRequest = undefined; 
+				});
+		});
+	// -->
+	</script>

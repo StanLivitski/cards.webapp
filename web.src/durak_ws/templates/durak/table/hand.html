@@ -1,0 +1,382 @@
+{% comment %}
+{# Copyright © 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% comment %}
+{# Template module that adds the landscape view of the game #}
+{# table to the <body> of a web page. The module's layout is designed #}
+{# to fit in a box with aspect ratio close to 4x3, but is flexible #}
+{# enough to cover most square and landscape-style containers. #}
+{% endcomment %}
+{% load static %}
+{% with hand=player.handBySuit %}
+{% if tableLayout == '4x3' %}
+	{% for cardsBySuit in hand %}
+		{% with lastRow=forloop.last %}
+		<div class="scaler" style="position: relative; font-size: 0;
+		 white-space: nowrap; height:{% if lastRow %}57.14%" data-sc-height="CH"
+		 {% else %}14.29%;" data-sc-height="CH/4"
+		 {% endif %}>
+		{% for card in cardsBySuit.1 reversed %}
+			<span class="scaler" style="position: relative"
+			 data-code="{{card.code}}" data-rank="{{card.rank}}" 
+			 data-suit="{{card.suit}}"
+			 data-sc-left="-{{ forloop.counter0 }} * (handOffset + CW)">
+				<object type="image/svg+xml" height="{% if lastRow %}100%{% else %}400%{% endif %}"
+				 data="{% static 'cards/images/front/'|add:card.code|add:'.svg' %}"></object>
+			</span>
+			<span class="scaler" style="position: relative"
+			 data-sc-left="-{{ forloop.counter0 }} * (handOffset + CW) - CW"
+			 data-sc-width="CW">
+				<object type="image/svg+xml"
+				 height="{% if lastRow %}100%{% else %}400%{% endif %}"
+				 data="{% url 'dimmer' style='fill: black; opacity: 0;' %}"
+				 ></object>
+			</span>
+		{% endfor %}
+		{% endwith %}
+		</div>
+	{% endfor %}
+{% else %}{# 9x16 layout #}
+	{% for cardsBySuit in hand %}
+			<div data-sc-height="CH + {{ cardsBySuit.1|length|add:-1 }} * CH / 4"
+				 data-sc-left="{{ forloop.counter0 }} * CW/2" class="scaler"
+				 style="position: absolute; height: 100%; bottom: 0; left: 0;">
+		{% for card in cardsBySuit.1 %}
+				<span style="position: absolute; bottom: 0; height: 25%"
+					data-code="{{card.code}}" data-rank="{{card.rank}}" 
+					data-suit="{{card.suit}}" class="scaler" data-sc-height="CH"
+					data-sc-bottom="{{ forloop.revcounter0 }} * CH / 4">
+					<object type="image/svg+xml" height="100%"
+					 data="{% static 'cards/images/front/'|add:card.code|add:'.svg' %}">
+					</object>
+				</span>
+				<span style="position: absolute; bottom: 0; height: 25%"
+					class="scaler" data-sc-height="CH"
+					data-sc-bottom="{{ forloop.revcounter0 }} * CH / 4">
+					<object type="image/svg+xml" height="100%"
+					 data="{% url 'dimmer' style='fill: black; opacity: 0;' %}"
+				 	></object>
+				</span>
+		{% endfor %}
+			</div>
+	{% endfor %}
+{% endif %}{# layout switch #}
+		<div class="input" style="position: absolute;
+		    background: transparent; height: 100%; width: 100%; top: 0; left: 0;">
+		</div>
+		<script type="text/javascript"><!--
+			$('#hand .input').click(function(event)
+			{
+				{# console.log("Clicked at " + event.pageX + ", " + event.pageY); #}
+				var cards = $(this).prevAll().find('span[data-code]');
+				for (var i = cards.length; 0 < i--; )
+				{
+					var card = cards.eq(i);
+					var image = card.find('object');
+					var bounds = image.offset();
+					bounds.right = bounds.left + image.width();
+					bounds.bottom = bounds.top + image.height();
+					if (bounds.left <= event.pageX && bounds.right > event.pageX
+						&& bounds.top <= event.pageY && bounds.bottom > event.pageY)
+					{
+						var data = card.data();
+						{# console.log("Clicked on " + data.code + ", bounds " + $.param(bounds)); #}
+						var dimmer = card.next();
+						if (!isCardPlayable(data.rank, data.suit)) break;
+						var selected = !card.data('selected');
+						card.data('selected', selected);
+						dimmer.children('object').attr('data',
+						 selected
+						 ? '{% url 'dimmer' style='stroke:navy;stroke-width:3px;stroke-opacity:.75;fill-opacity:0' %}'
+						 : '{% url 'dimmer' style='fill:black;opacity:.1' %}'
+						);
+						var shift = { left: ' - CW/20', bottom: ' + CW/20' };
+						shiftElementWithScaler(card, shift, selected);
+						shiftElementWithScaler(dimmer, shift, selected);
+						cardSelectionChanged();
+						break;
+					}
+				}
+				{% comment %}
+					Omit `flag` to toggle `shift` on a _Scaler_-enabled
+					jQuery element, or pass a boolean to apply or remove
+					the shift.
+					`jqueryElement` accepts a jQuery object wrapping a
+					single HTML element styled using _Scaler_.
+					`shift` should be an object mapping CSS properties
+					to shift expressions appended to respective CSS rule
+					formulas.
+				{% endcomment %}
+				function shiftElementWithScaler(jqueryElement, shift, flag)
+				{
+					var attrs = {};
+					for (var prop in shift)
+					{
+						var scalerProp = scaler.SCALER_DATA_PREFIX
+							+ prop[0].toUpperCase() + prop.slice(1);
+						attrs[prop] = jqueryElement.data(scalerProp);
+						if (undefined == attrs[prop])
+							attrs[prop] = '';
+						attrs[prop] = toggleSuffix(attrs[prop], shift[prop], flag);
+						if ('' == attrs[prop])
+							attrs[prop] = undefined;
+					}
+					scaler.update(jqueryElement, attrs);
+				}
+				{% comment %}
+					Omit `flag` to toggle `suffix` on `phrase`, or pass a
+					boolean to set or clear the suffix.
+				{% endcomment %}
+				function toggleSuffix(phrase, suffix, flag)
+				{
+					var hasSuffix = phrase.slice(-suffix.length) == suffix;
+					if (!flag && hasSuffix)
+						phrase = phrase.slice(0, -suffix.length);
+					else if ((flag == undefined || flag) && !hasSuffix)
+						phrase += suffix;
+					return phrase;
+				}
+			});
+		{% comment %}
+			Determine the cards that can be played at this moment
+			in the game among those the player has on hand.
+
+			If there are no cards on the table, all cards are deemed
+			playable by an attacker. When the attacker selects any card(s),
+        	the set of playable cards to is	narrowed to the same rank as
+        	selected cards.
+        	
+        	If there are cards on the table, each active player except
+        	the defender is allowed to throw in cards of the same rank as
+        	those on the table.
+
+			The defender is allowed to select any one card, if it is:
+			(a) a trump card and there are any unbeaten non-trumps, or
+			(b) there is an unbeaten card on the table of the same
+			suit and a lower rank. Once the defender selects a card,
+			s/he cannot select other cards until s/he makes a move.
+        	
+			Pass `true` as an argument to recompute the cache of
+			playable cards when the hand, cards on table, or
+			selections may have changed.
+
+			Returns a hash with suits as keys and ordered arrays
+			of card rank indexes within a suit as values.  
+		{% endcomment %}
+		var playableCards = function ()
+		{
+			var playables;
+			function addPlayable(suit, rankIndex)
+			{
+				if (!(suit in playables))
+					playables[suit] = [ rankIndex ];
+				else
+				{
+					var suitPlayables = playables[suit];
+					{# insertion of rankIndex in ordered array suitPlayables #}
+					{# assuming that rankIndex is presented in a certain order #}
+					if (suitPlayables[0] > rankIndex)
+						suitPlayables.unshift(rankIndex);
+					else if (suitPlayables[suitPlayables.length-1]
+							< rankIndex)
+						suitPlayables.push(rankIndex);
+					else if (suitPlayables[0] != rankIndex
+						 && suitPlayables[suitPlayables.length-1] != rankIndex)
+						throw 'Unexpected order of ' + suit
+							+ " on player's hand.";
+				}
+			}
+			return function (recompute) {
+				if (recompute || undefined == playables)
+				{
+					playables = {};
+					var unbeatenCardRanks = cardsUnbeaten();
+					var cardsOnHand = $('#hand span[data-code]');
+					if ("defending" == playerStatus)
+			        {
+						var i = tableLayout == '4x3' ?
+							- cardsOnHand.length - 1 : cardsOnHand.length;
+						while (0 != (0 <= i ? i-- : ++i))
+						{
+							var card = cardsOnHand.eq(0 <= i
+									? i : cardsOnHand.length + i);
+							var data = card.data();
+							var rankIndex = cardRanks[data.rank];
+							{# allow selecting one card at a time #}
+							if (data.selected)
+							{
+								playables = {};
+								playables[data.suit] = [ rankIndex ];
+								break;
+							}
+							var playable = false;
+							{# a trump card is playable if there are any unbeaten non-trumps #}
+							if (trumpSuit == data.suit)
+								for(var suit in unbeatenCardRanks)
+									if (suit != trumpSuit
+										&& 0 < unbeatenCardRanks[suit].length)
+									{
+										playable = true;
+										break;
+									}
+							{# any card is playable if there are lower cards of the same suit #}
+							if (!playable)
+							{
+								var candidates = unbeatenCardRanks[data.suit];
+								playable = candidates && 0 < candidates.length
+									&& rankIndex > candidates[0];
+							}
+							if (playable)
+								addPlayable(data.suit, rankIndex);
+						}
+					}
+					else
+					{
+						var matchingRanks = cardRanksOnTable();
+						cardsOnHand.each(function ()
+						{
+							var card = $(this);
+							var data = card.data();
+							var rankIndex = cardRanks[data.rank];
+							if ("attacking" == playerStatus
+								&& 0 == matchingRanks.length && data.selected)
+					        {
+								{# winnow cards with rankIndex from everything added thus far #}
+								matchingRanks.push(rankIndex);
+								for (var suit in playables)
+								{
+									if (rankIndex == orderedArraySearch(
+											playables[suit], rankIndex)[1]) 
+										playables[suit] = [ rankIndex ]; 
+									else
+										delete playables[suit];
+								}
+								{# ... and add this selected card #}
+								playables[data.suit] = [ rankIndex ];
+					        }
+							else if ("attacking" == playerStatus
+									 && 0 == matchingRanks.length
+									|| ("other" == playerStatus
+										|| "attacking" == playerStatus)
+									 && rankIndex == orderedArraySearch(
+										matchingRanks, rankIndex)[1])
+								addPlayable(data.suit, rankIndex);
+						});
+					}
+				}
+				return playables;
+			};
+		}();
+		{% comment %}
+	        Tell whether a specific card can be played at this moment.
+
+	        This function does not check whether requested card is present
+			on the player's hand.
+
+	        `rank` a string identifying the card's rank.
+	        `suit` a string identifying the card's suit.
+
+	        Returns a ``true`` if the card can be played, ``false`` if
+	        not.
+		{% endcomment %}
+		function isCardPlayable(rank, suit)
+		{
+			indexes = playableCards()[suit];
+			if (undefined == indexes)
+				return false;
+			rankIndex = cardRanks[rank];
+			return rankIndex == orderedArraySearch(indexes, rankIndex)[1];
+		}
+		{% comment %}
+			Highlight a card on hand if it is selected,
+			remove highlighting if the card can be played at the moment,
+			dim if it can't.
+		{% endcomment %}
+		function highlightPlayable(card)
+		{
+			if (!(card instanceof $))
+				card = $(card);
+			var data = card.data();
+			var dimmer = card.next();
+			var dimmerURL = 
+			 !isCardPlayable(data.rank, data.suit)
+			 ? '{% url 'dimmer' style='fill:black;opacity:.35' %}'
+			 : data.selected
+			  ? '{% url 'dimmer' style='stroke:navy;stroke-width:3px;stroke-opacity:.75;fill-opacity:0' %}'
+			  : '{% url 'dimmer' style='fill:black;opacity:.1' %}';
+			dimmer.children('object').each(function() {
+				var obj = $(this);
+				if (obj.attr('data') != dimmerURL)
+					obj.attr('data', dimmerURL);
+			});
+		}
+		{% comment %}
+			Update highlights on the cards that can be played
+			and those that can't.
+		{% endcomment %}
+		function highlightPlayableCards()
+		{
+			$('#hand span[data-code]').each(function() { highlightPlayable(this); });
+		}
+		$(highlightPlayableCards);
+		{% comment %}
+			Called to signal the change in current players' card
+			selecton and update the table image accordingly.
+		{% endcomment %}
+		function cardSelectionChanged()
+		{
+			playableCards(true);
+			highlightPlayableCards();
+			var cards=$('#hand span[data-code]');
+			var selected;
+			cards.each(function ()
+			{
+				if($(this).data('selected'))
+				{
+					selected = $(this).data();
+					return false;
+				}
+			});
+			highlightPlayArea(selected);
+		}
+		{% comment %}
+			Retrieve the current players' card selecton
+			as an array of objects with `code`,
+			`rank` and `suit` properties.
+		{% endcomment %}
+		function getCardSelection()
+		{
+			var cards=$('#hand span[data-code]');
+			var selected = [];
+			cards.each(function ()
+			{
+				var data = $(this).data();
+				if (data.selected)
+					selected.push({
+						code: data.code,
+						rank: data.rank,
+						suit: data.suit
+					});
+			});
+			return selected;
+		}
+		// --></script>
+{% endwith %}{# player's hand #}

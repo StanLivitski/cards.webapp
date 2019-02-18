@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<?eclipse-pydev version="1.0"?><pydev_project>
+<pydev_pathproperty name="org.python.pydev.PROJECT_SOURCE_PATH">
+<path>/${PROJECT_DIR_NAME}/games.src</path>
+<path>/${PROJECT_DIR_NAME}/collections.src</path>
+<path>/${PROJECT_DIR_NAME}/runtime.src</path>
+<path>/${PROJECT_DIR_NAME}/web.src</path>
+<path>/${PROJECT_DIR_NAME}/comety.src</path>
+<path>/${PROJECT_DIR_NAME}/misc/scripts</path>
+</pydev_pathproperty>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_VERSION">python 3.0</pydev_property>
+<pydev_property name="org.python.pydev.PYTHON_PROJECT_INTERPRETER">python3.6</pydev_property>
+</pydev_project>

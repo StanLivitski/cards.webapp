@@ -93,3 +93,8 @@ ENV/
 
 # Eclipse project settings
 .project
+
+# Links to be created during install
+web.src/durak_ws/static/bootstrap
+web.src/durak_ws/static/js/jquery.js
+

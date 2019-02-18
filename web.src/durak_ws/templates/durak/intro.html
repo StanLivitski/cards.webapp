@@ -1,0 +1,463 @@
+{% comment %}
+{# Copyright © 2016, 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% extends "durak/page.html" %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Start a Durak game" %}{% endblock %}
+
+{% block head_scripts %}<script type="text/javascript"><!--
+	{% include "comety/events.js" with renderAPI=False %}
+    // --></script>
+	{{ block.super }}
+    <script type="text/javascript"><!--
+    {% include "comety/events.js" with renderTiming=False autoStart=True %}
+    comety.defaults.url = "{% url 'intro-updates' %}";
+    (function() {
+    	defaultHandler = comety.defaults.handler;
+    	function handler(events, loopParams) {
+        	if ("game-start" == events[0][1].event)
+       		{
+        		location.replace("{% url 'table' %}");
+        		return 0;
+       		}
+        	else
+        		return defaultHandler(events, loopParams);
+    	}
+    	comety.defaults.handler = handler;
+    })();
+
+    {% comment %}TODO: make me reusable
+    {% endcomment %}function initForms() {
+    	var global = this;
+    	var events = {
+    		"submit" : null,{% comment %}
+			"reset" : null,	// HTML 5 only
+			{% endcomment %}
+    	};
+    	var FORM_ID_PREFIX = "form-";
+    	$('form').each(function() {
+    		if (FORM_ID_PREFIX != this.id.slice(0, FORM_ID_PREFIX.length))
+    			return;
+    		var prefix = this.id.replace("-","_") + "_";
+    		for (event in events)
+    			if ((prefix + event) in global)
+    			{
+    				handler = global[prefix + event];
+    				if (events[event] != undefined)
+    					event = events[event];
+    				$(this).on(event, handler);
+    			}
+    	})
+    }
+
+    $(function() {
+    	initForms();
+    })
+    // --></script>
+{% endblock head_scripts %}
+
+{% block content %}
+	{% if error %}
+<div class="modal" id="error-modal" tabindex="-1" role="dialog"
+ aria-labelledby="error-modal-label" data-show="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+         aria-label="Close"><span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title" id="error-modal-label">{% trans "Error setting up game" %}</h4>
+      </div>
+      <div class="modal-body">
+      	{{ error|escape }}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">
+        	{% trans "Ok" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<script type="text/javascript"><!--
+	$('#error-modal').modal('show');
+// --></script>
+	{% endif %}
+	{% if playerNo == 0 %}
+<div class="modal" id="nameless-confirm-modal" tabindex="-1" role="dialog" aria-labelledby="nameless-confirm-label">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal"
+         aria-label="Close"><span aria-hidden="true">&times;</span>
+        </button>
+        <h4 class="modal-title" id="nameless-confirm-label">{% trans "Confirm nameless players" %}</h4>
+      </div>
+      <div class="modal-body">
+      	{% trans "Player(s)" %}
+      	<span id="nameless-confirm-numbers"></span>
+      	{% trans "have not entered their names." %}<br />
+		{% trans "Start the game with nameless players?" %}
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-default" data-dismiss="modal">
+        	{% trans "Cancel" %}
+        </button>
+        <button type="button" class="btn btn-primary">
+        	{% trans "Yes" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+	{% endif %}
+<div class="row">
+	<div class="col-xs-12">
+	{% for playerInfo in checkin.playerStata %}
+		{% if forloop.counter0 == 0 and playerNo == 0 %}
+		<div class="panel row" style="background: transparent">
+		{% else %}
+		<div class="panel panel-default">
+		{% endif %}
+		{% if forloop.counter0 == playerNo %}
+			<form method="POST" id="form-name"
+			{% if playerNo == 0 %} class="col-xs-12 col-sm-8 col-md-10"{% endif %}
+			>
+				{% csrf_token %}
+		{% else %}
+			<form>
+		{% endif %}
+				<div class="input-group">
+					<span class="input-group-addon">{{ forloop.counter }}. </span>
+					<input type="text" class="form-control" id="name-change"
+					 name="player-name" placeholder="{% trans 'Enter name' %}" 
+					{% if playerInfo.1 %}
+					 value="{{ playerInfo.1 }}" 
+					{% elif forloop.counter0 != playerNo %}
+					 value="
+{% blocktrans with no=forloop.counter %}Player {{ no }}{% endblocktrans %}" 
+					{% endif %}
+					{% if forloop.counter0 != playerNo %}
+					 readonly />
+					{% else %}
+					/>
+					<script type="text/javascript"><!--
+						function name_change()
+						{
+							$(this).parents('form').submit();
+							return true;
+						}
+						$("#name-change").change(name_change);
+					//--></script>
+					{% endif %}
+					<span class="input-group-addon">
+						<span class="text-info">
+						{% if forloop.counter0 == playerNo %}
+							{% trans "you" %}
+						{% else %}
+							{{ playerInfo.2 }}
+						{% endif %}
+						</span>
+					</span>
+				</div>
+			</form>
+			{% if playerNo == 0 %}
+				{% if forloop.counter0 == 0 %}
+			<form method="POST" id="form-start"
+			 class="col-xs-8 col-xs-offset-2 col-sm-offset-0 col-sm-4 col-md-2">
+				{% csrf_token %}
+				<button name="action" style="overflow: hidden;"
+				 class="form-control btn btn-primary
+					{% if checkin.ready %}"{% else %} active" disabled{% endif %}
+				 value="game-start">
+				{% trans "Start game" %}</button>
+				<script type="text/javascript"><!--
+				function form_start_submit() {
+				{% if checkin.ready %}
+					var nonames = [
+					{% for playerInfo in checkin.playerStata %}
+						{% if not playerInfo.1 %}{{ forloop.counter }},{% endif %}
+					{% endfor %}
+					]
+					if (0 < nonames.length && 0 == $('#nameless-confirm-modal:visible').length)
+					{
+						var numbers = '';
+						var delim = '{% trans ", " %}';
+						for (var i = 0;;)
+						{
+							numbers += nonames[i];
+							if (++i < nonames.length)
+								numbers += delim;
+							else
+								break;
+						}
+						$('#nameless-confirm-numbers').text(numbers);
+						$('#nameless-confirm-modal button.btn-primary').click(
+							function() { $('#form-start button').click(); }
+						);
+						$('#nameless-confirm-modal').modal('show');
+					 	return false;
+					}
+					else
+						return true;
+				{% else %} 
+				 	return false;
+				{% endif %}
+				}
+				//--></script>
+			</form>
+			{% else %}
+			<div class="panel-body"><form id="form-invite" target="_blank">
+			    <label for="invite-url">
+{% if playerInfo.1 %}{% blocktrans with player=playerInfo.1 %}Please copy or download this URL and
+ask {{ player }} to open it in his/her browser:{% endblocktrans %}
+{% else %}{% blocktrans with no=forloop.counter %}Please copy or download this URL and ask
+Player {{ no }} to open it in his/her browser:{% endblocktrans %}
+{% endif %}		</label>
+				<div class="col-xs-11" style="padding: 0;">
+					<input type="text" class="form-control" id="invite-url"
+						value="{{ URLPrefix }}{% url 'intro' playerInfo.0 %}" readonly>
+				</div>
+				<div class="col-xs-1" style="padding: 0;">
+					<input type="hidden" name="seat" value="{{ forloop.counter0 }}" /> 
+					<button name="action" value="invitation-download" title="{% trans 'Download' %}"
+						class="btn btn-default" style="margin: 0 0 0 auto; display: block;">
+						<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
+						<span class="sr-only">{% trans "Download" %}</span>
+					</button>
+				</div>
+			</form></div>
+			{% endif %}
+		{% endif %}
+		</div>
+	{% endfor %}
+	</div>
+</div>
+<div class="row">
+	<div class="col-xs-12 col-md-5">
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "Settings" %}</div>
+			<div class="panel-body">
+			{% if playerNo == 0 %}
+				<form class="form-horizontal" method="POST" id="form-settings">
+					{% csrf_token %}
+					<div class="form-group">
+						<label for="settings-playerCount"
+						 class="col-xs-6 control-label">{% trans "Player count" %}</label>
+					    <div class="col-xs-6"><div class="input-group">
+					    	<span class="input-group-btn"><button class="btn btn-default disabled"
+					    		type="button" id="settings-playerCount-minus" disabled>
+						    	<span class="glyphicon glyphicon-minus-sign" aria-hidden="true"></span>
+					    	</button></span>
+							<input type="text" class="form-control" size="1" id="settings-playerCount"
+								 name="settings-players" placeholder="n" value="{{ checkin.capacity }}" />
+					    	<span class="input-group-btn"><button class="btn btn-default disabled"
+					    		type="button" id="settings-playerCount-plus" disabled>
+					    		<span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
+					    	</button></span>
+						</div></div>
+						<div class="col-xs-12 text-right help-block hidden" id="settings-playerCount-invalid">
+							<span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+							<span class="sr-only">(warning)</span>
+							<span></span>
+  						</div>
+					</div>
+					<script type="text/javascript"><!--
+						var settings_PlayerCount_min = {{ minimumPlayers }};
+						var settings_PlayerCount_max = {{ maximumPlayers|default_if_none:"null" }};
+						var settings_PlayerCount_value = Number($("#settings-playerCount").val());
+						function settings_PlayerCount_incr(incr)
+						{
+							value = settings_PlayerCount_value + incr;
+							if (!isNaN(value)
+								&& value >= settings_PlayerCount_min
+								&& (value <= settings_PlayerCount_max
+									|| null == settings_PlayerCount_max)
+								)
+							{
+								$('#settings-playerCount').val(value);
+								settings_PlayerCount_change();
+							}
+						}
+						function settings_PlayerCount_change()
+						{
+							with($('#settings-playerCount'))
+							{
+								value = parseInt(val());
+								if (isNaN(value) || String(value) != val() 
+									|| value < settings_PlayerCount_min
+									|| value > settings_PlayerCount_max)
+								{
+									message = "{% trans "Please enter an integer between #min and #max."%}";
+									message = message.replace(/#min/, settings_PlayerCount_min);
+									message = message.replace(/#max/, settings_PlayerCount_max);
+									with(parents(".form-group"))
+									{
+										addClass("has-warning");
+										with(find(".btn-default"))
+										{
+											removeClass("btn-default");
+											addClass("btn-warning");
+										}
+									}
+									with($("#settings-playerCount-invalid"))
+									{
+										children(":last").text(message);
+										removeClass("hidden");
+									}
+									val(settings_PlayerCount_value);
+									return false;
+								}
+								else
+								{
+									parents('form').submit();
+									return true;
+								}
+							}
+						}
+			    		with ($("#settings-playerCount-minus"))
+			    		{
+			    		 click(function() { settings_PlayerCount_incr(-1) });
+			    		 if (settings_PlayerCount_value > settings_PlayerCount_min) {
+			    			 removeClass("disabled");
+			    			 removeAttr("disabled");
+			    		 }
+			    		}
+			    		with ($("#settings-playerCount-plus"))
+			    		{
+			    		 click(function() { settings_PlayerCount_incr(+1) });
+			    		 if (settings_PlayerCount_value < settings_PlayerCount_max) {
+				    		 removeClass("disabled");
+			    			 removeAttr("disabled");
+			    		 }
+			    		}
+						$("#settings-playerCount").change(settings_PlayerCount_change);
+					//--></script>
+					<div class="form-group">
+						<label for="settings-connectToAddress" class="col-xs-6 control-label">
+							{% trans "Connect players to" %}</label>
+						<div class="col-xs-6">
+							<select class="form-control" name="settings-connectToAddress"
+								 id="settings-connectToAddress">
+								{% for index, addr in inboundAddresses %}
+								<option value="{{index}}" 
+								{% if index == checkin.host%}selected{% endif %}>
+									{{addr}}
+								</option>
+								{% endfor %}
+								<option value="" 
+								{% if inboundAddressOther %}selected{% endif %}>
+									{% trans "Other ..." %}
+								</option>
+							</select>
+						</div>
+					</div>
+					<div class="form-group {% if not inboundAddressOther %}hidden{% endif %}">
+						<label for="settings-connectToOther" class="col-xs-6 control-label">
+							{% trans "... other destination" %}</label>
+						<div class="col-xs-6">
+							<input class="form-control" placeholder="{% trans 'name or address' %}"
+								 id="settings-connectToOther" name="settings-connectToOther"
+								 type="text"
+							 {% if inboundAddressOther %}
+								 value="{{checkin.host}}
+								 {% if checkin.port != None %}:{{checkin.port}}{% endif %}"
+							 {% endif %} 
+							 />
+						</div>
+						<div class="col-xs-12 text-right help-block hidden" id="settings-connectToOther-invalid">
+							<span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+							<span class="sr-only">(warning)</span>
+							<span></span>
+  						</div>
+					</div>
+					<script type="text/javascript"><!--
+					function settings_connectToAddress_change()
+					{
+						with ($("#settings-connectToAddress"))
+						{
+						 if (val() != '' || $("#settings-connectToOther").val().trim() != '')
+						 	parents('form').submit();
+						 else
+						 	$("#settings-connectToOther").parents(".form-group").removeClass('hidden');
+						}
+		    		}
+					function settings_connectToOther_validate()
+					{
+						if ($("#settings-connectToAddress").val() != '')
+							return true;
+						if ($("#settings-connectToOther").val().trim() != '')
+							return true;
+						message = '{% trans "Please enter a host name or address."%}';
+						$("#settings-connectToOther").parents(".form-group").addClass("has-warning");
+						with($("#settings-connectToOther-invalid"))
+						{
+							children(":last").text(message);
+							removeClass("hidden");
+						}
+					 	return false;
+		    		}
+					function settings_connectToOther_change()
+					{
+						if (settings_connectToOther_validate())
+							$("#settings-connectToOther").parents('form').submit();
+		    		}
+					$("#settings-connectToAddress").change(settings_connectToAddress_change);
+					$("#settings-connectToOther").change(settings_connectToOther_change);
+					//--></script>
+					<input class="hidden" type="reset" id="settings-reset" />
+				</form>
+				<script type="text/javascript"><!--
+					var settings_validation_handlers = [
+						settings_connectToOther_validate
+					];
+					function form_settings_request_reset()
+					{
+						$("#settings-reset").click();
+						if ($("#settings-connectToAddress").val() == '')
+						 	$("#settings-connectToOther").parents(".form-group").removeClass('hidden');
+						else
+						 	$("#settings-connectToOther").parents(".form-group").addClass('hidden');
+					}
+					function form_settings_submit() {
+						for (i in settings_validation_handlers)
+							if (!settings_validation_handlers[i]())
+							{
+								form_settings_request_reset();
+							 	return false;
+							}
+					 	return true;
+					}
+				//--></script>
+			{% endif %}
+			</div>
+		</div>
+	</div>
+	<div class="col-md-7 visible-md visible-lg">
+		<div class="panel panel-default">
+			<div class="panel-heading">{% trans "Messages" %}</div>
+			<div class="panel-body">TODO: messages in an iframe</div>
+		</div>
+	</div>
+</div>
+{% endblock content %}

@@ -1,0 +1,139 @@
+{% comment %}
+{# Copyright © 2017 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% extends "durak/page.html" %}
+
+{% load i18n %}
+{% load staticfiles %}
+
+{% block title %}{% trans "Durak game" %}{% endblock %}
+
+{% block head_scripts %}<script type="text/javascript"><!--
+	{% include "comety/events.js" with renderAPI=False %}
+    // --></script>
+	{{ block.super }}
+    <script type="text/javascript"><!--
+    {% include "comety/events.js" with renderTiming=False autoStart=True %}
+    comety.defaults.url = "{% url 'table-updates' %}";
+	{% comment %} // A stub to inspect arriving Comety events
+    comety.defaults.handler = function() {
+		var _oldHandler = comety.defaults.handler;
+		return function(events, loopParams) {
+	    	alert ( "Event(s) occurred: " + JSON.stringify(events) ); // console.log
+	    	return _oldHandler.apply(this, arguments); // events.length;
+		};
+    }();
+	{% endcomment %}
+	// --></script>
+	<link rel="stylesheet" type="text/css" href="{% static 'scaler/scaler.css' %}" />
+	<style type="text/css">
+	.highlight {
+		background: white;
+		border: 1px solid navy;
+		opacity: 0.2;
+	}
+	</style>
+	<script src="{% static 'scaler/scaler.js' %}"></script>
+	<script type="text/javascript"><!--
+	{% if tableLayout %}
+		var tableLayout = '{{ tableLayout }}';
+	{% endif %}
+		scaler.prepareContext = function()
+		{
+			var super_ = scaler.prepareContext;
+			var tableLayouts =
+			{
+			 // 0.8125 is the tipping point
+			 '4x3': function applies(AR)
+				{ return AR > 0.810; },
+			 '9x16': function applies(AR)
+				{ return AR < 0.815; },
+			 matching : function (AR)
+			 {
+				for (var layout in this)
+				{
+					if ('matching' == layout || 'function' != typeof(this[layout]))
+						continue;
+					if (this[layout](AR))
+						return layout;
+				}
+				return undefined;
+			 }
+			};
+			return function(context, $)
+			{
+				super_(context, $);
+				var squareInch = $('#square-inch');
+				var tableLayout = window.tableLayout;
+				var pairsOnTable = {{ game.countPairsOnTable }};
+				with (context) with (Math)
+				{
+					context.W = windowWidth;
+					context.H = windowHeight;
+					context.AR = W / H;
+					if (tableLayout === undefined
+						|| !tableLayouts[tableLayout].call(tableLayouts, AR))
+					{
+						tableLayout = tableLayouts.matching(AR);
+						location.replace('?' + $.param({layout: tableLayout}));
+					}
+					context.maxSuitLength = {{ player.maxSuitLength }};
+{% if tableLayout %}{% include layoutTemplate with mode='scaler-script' %}{% endif %}
+				}
+			};
+		}();
+		{% comment %}
+			Find a value and its index or an insertion point for
+			a value within an array with ascending
+			order of elements.
+			Return an array with the index of insertion point
+			and the value at that index, if any, or `null` if none.
+		{% endcomment %}
+		function orderedArraySearch(array, value)
+		{
+			if (null == array)
+				return [ null, null ];
+			var from = 0;
+			var to = array.length;
+			for (var i; (i = (from + to) >> 1) > from;)
+				if (array[i] > value)
+					to = i;
+				else
+					from = i;
+			if (array[from] < value)
+				from++;
+			return [ from, array.length <= from ? null : array[from] ];
+		}
+
+		var cardRanks = {
+		{% for rank, index in game.rankKeys.items %}'{{ rank }}': {{ index }},
+		{% endfor %}};
+		var playerStatus = '{{ player.status }}';
+		var trumpSuit = '{{ game.trumpCard.suit }}';
+	// --></script>
+{% endblock head_scripts %}
+
+{% block body %}
+	<div style="position: absolute; display: block; background: transparent;
+		width: 1in; height: 1in;" id="square-inch">
+  	</div>
+{% if tableLayout %}{% include layoutTemplate %}{% endif %}
+{% endblock body %}

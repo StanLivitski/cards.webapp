@@ -1,0 +1,100 @@
+{% comment %}
+{# Copyright © 2017, 2018 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% comment %}
+{# Template module that adds the portrait view of the game #}
+{# table to the <body> of the game page. The module's layout is designed #}
+{# to fit in a box with aspect ratio close to 9x16, but is flexible #}
+{# enough to cover most portrait-style containers. #}
+{% endcomment %}
+{% if mode == 'scaler-script' %}
+					var	minHS = squareInch.width() / 10;
+					minHS = max(minHS, W / 100);
+					var	minVS = squareInch.height() / 10;
+					minVS = max(minVS, H / 100);
+
+					var cww = 2/15*W - 2/3*minHS;
+					var cwh = (4/25*H - 24/25*minVS) * SQRT1_2;
+
+					context.CW = round(min(cww, cwh));
+					context.CH = round(SQRT2 * CW);
+					context.VS = H/6 - 25/24*CH;
+					context.HS = W/5 - 3/2*CW;
+					context.LH = CH/4;
+					context.FS = floor(2/3*LH);
+					context.VS2 = H - VS - CH - LH >= pairsOnTable * (CH + VS)
+						? VS : (H - 2*VS - 2*CH - LH) / (pairsOnTable-1) - CH;
+{% else %}{# default rendering mode #}
+	<div style="position: fixed; background: transparent;
+		height: 100%; width: 32%;" class="scaler" data-sc-width="HS + 5/2 * CW">
+
+	 	<div style="position: relative; background: transparent;
+	 				width: 100%; height: 6.723%;"
+	 				class="scaler" data-sc-height="VS"></div>
+
+	 	<div style="position: relative; background: transparent;
+ 				float: left; left: 6.25%; height: 12.728%; width: 53.03%;"
+ 				class="scaler" data-sc-height="4/3 * CH" data-sc-width="CH" data-sc-left="HS">
+		{% include 'durak/table/stock.html' %}
+		</div>
+
+	 	<div id="hand" class="scaler" style="position: relative;
+ 				background: transparent; top: 5.928%; left: 6.25%; clear: left;
+ 				height: 65.513%; width: 93.75%;"
+ 				data-sc-top="VS - CH/12" data-sc-height="4*CH + 3*(VS + LH)"
+ 				data-sc-width="5/2 * CW" data-sc-left="HS">
+		{% include 'durak/table/hand.html' %}
+		</div>
+
+		<div style="position: relative; background: transparent;
+				top: 5.928%; clear: left; left: 6.25%;
+				width: 100%; height: 3.362%;"
+ 				class="scaler" data-sc-top="VS - CH/12" data-sc-left="HS" data-sc-height="VS/2"></div>
+
+		<div style="position: relative; background: transparent;
+					top: 5.928%; left: 6.25%; width: 100%;  height: 2.387%"
+ 					class="scaler" data-sc-top="VS - CH/12" data-sc-left="HS" data-sc-height="LH">
+		{% include 'durak/table/buttons.html' %}
+		</div>
+	</div>
+
+	<div style="position: relative; float: right; background: transparent;
+		 right: 2%; height: 100%; width: 21.22%;"
+		 class="scaler" data-sc-right="HS" data-sc-width="2 * CW">
+
+		<div style="position: relative; background: transparent;
+			height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+		{% include 'durak/table/opponents-column.html' %}
+	</div>
+
+	<div style="position: relative; background: transparent;
+		height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div>
+
+	<div style="position: relative; background: transparent;
+		 float: left; height: 11.933%; width: 22%;"
+		 class="scaler" data-sc-height="CH + LH" data-sc-width="2*HS + 3/2*CW"></div>
+	{% include 'durak/table/opponents-row.html' %}
+
+	<div style="position: relative; clear: left; background: transparent;
+		height: 6.723%; width: 100%;" class="scaler" data-sc-height="VS"></div> 
+
+	{% include 'durak/table/play.html' %}
+{% endif %}{# default rendering mode #}

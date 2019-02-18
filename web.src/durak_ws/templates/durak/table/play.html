@@ -1,0 +1,239 @@
+{% comment %}
+{# Copyright © 2017, 2018 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+{% comment %}
+{# Template module that displays the cards in play. #}
+{% endcomment %}
+{% load static %}
+{% if tableLayout == '4x3' %}
+ 	<div id="play" style="position: absolute; background: transparent;
+ 		width: 73.73%; height: 30%;" class="scaler" data-sc-height="3/2 * CH"
+ 		data-sc-width="W - 2*CW - CH - 4*HS - PAO" data-sc-left="CH + 2*HS">
+ 		{% for pair in game.cardsOnTable %}
+		<div style="float: left; position: relative;
+			 height: 100%; width: 14.39%; left: 6.85%"
+			class="pair scaler" data-sc-width="CW" data-suit="{{pair.0.suit}}"
+			data-code="{{pair.0.code}}" data-rank="{{pair.0.rank}}"
+			{% if pair|length > 1 %}data-beat="{{pair.1.code}}" data-beat-rank="{{pair.1.rank}}"
+			{% endif %}data-sc-left="HS1*{{ forloop.counter0 }}">
+			{% for card in pair %}
+			<object type="image/svg+xml" height="66.67%"
+				data="{% static 'cards/images/front/'|add:card.code|add:'.svg' %}"
+				style="position: absolute;
+				{% if not forloop.first %} top: 33.34%;{% endif %}">
+			</object>
+			{% endfor %}
+			<div style="position: absolute; 
+				right: 0; bottom: 0; top: 0; left: 0;">
+			</div>
+		</div>
+		{% endfor %}	
+		<div class="input scaler" style="position: absolute;
+			right: 0; bottom: 0; top: 0; left: 0;">
+		</div>
+	</div>
+{% else %}{# 9x16 layout #}
+	<div id="play" style="position: relative; background: transparent;
+		width: 30%; left: 36%;" class="scaler" data-sc-width="5/2*CW"
+		data-sc-left="3*HS + 5/2*CW" data-sc-height="H - 2*VS - CH - LH">
+ 		{% for pair in game.cardsOnTable %}
+		<div style="position: relative; width: 100%; top: 0;
+			height: 0.001%; margin-bottom: 56.568%;{# sqrt(2) * 40% (CW) - 0.001% #}"
+			class="pair scaler" data-sc-height="CH" data-suit="{{pair.0.suit}}"
+			data-code="{{pair.0.code}}" data-rank="{{pair.0.rank}}"
+			{% if pair|length > 1 %}data-beat="{{pair.1.code}}" data-beat-rank="{{pair.1.rank}}"
+			{% endif %}data-sc-margin-bottom="0"
+			data-sc-top="{{ forloop.counter0 }}*VS2">
+			{% for card in pair %}
+			<object type="image/svg+xml" width="40%"
+				data="{% static 'cards/images/front/'|add:card.code|add:'.svg' %}"
+				style="position: absolute;
+				 left: {% if forloop.first %}38%{% else %}0{% endif %};">
+			</object>
+			{% endfor %}
+			<div style="position: absolute; 
+				right: 0; bottom: 0; top: 0; left: 0;">
+			</div>
+		</div>
+		{% endfor %}	
+		<div class="input" style="position: absolute; 
+			right: 0; bottom: 0; top: 0; left: 0;">
+		</div>
+	</div> 
+{% endif %}{# layout switch #}
+	<script type="text/javascript"><!--
+		var moveRequest; 
+		$('#play .input').click(function(event)
+		{
+			if (undefined != moveRequest)
+				return;
+			var selectedData = getCardSelection(); 
+			if (0 == selectedData.length)
+				return;
+			var selected = [];
+			$.each(selectedData, function () {
+				selected.push(this.code);
+			});
+			selectedData = 0 < selectedData.length ? selectedData[0] : undefined; 
+			if ("defending" == playerStatus)
+			{
+				var target;
+				$(this).prevAll('*:has(div.highlight)').each(function()
+				{
+					var area = $(this);
+					var bounds = area.offset();
+					bounds.right = bounds.left + area.width();
+					bounds.bottom = bounds.top + area.height();
+					if (bounds.left <= event.pageX && bounds.right > event.pageX
+						&& bounds.top <= event.pageY && bounds.bottom > event.pageY)
+					{
+						target = area;
+						{# console.log("Clicked on " + target.data('code') + ", bounds " + $.param(bounds)); #}
+						return false;
+					}
+				});
+				if (undefined == target)
+					return;
+				if (1 < selected.length)
+					throw 'Defending moves can be made with 1 card only, found '
+						+ selected.length + ' cards.';
+				var code = selected[0];
+				selected = {};
+				selected[target.data('code')] = code;
+			}
+			var jsonCards = JSON.stringify(selected);
+			$("#form-game-control input[name='action']").val('play');
+			$("#form-game-control input[name='args']").val(jsonCards);
+			moveRequest = $.post("{% url 'table-updates' %}",
+					$("#form-game-control").serialize());
+			moveRequest
+				.always(function()
+				{
+					$("#form-game-control input[name='action']").val('');
+					$("#form-game-control input[name='args']").val('');
+				})
+				.fail(function(jqXHR, textStatus, errorThrown)
+				{
+					if (console instanceof Object && 'error' in console)
+						console.error(
+							'Move request with ' + jsonCards + ' ' +
+							(null == textStatus ? 'failed' : textStatus) +
+							(null == errorThrown ? '' : ': ' + errorThrown)
+						);
+					moveRequest = undefined; 
+					highlightPlayArea(selectedData);
+				});
+			highlightPlayArea(false);
+		});
+		{% comment %}
+		Pass a value equivalent to `false` to remove highlighting of the
+		play area. Passing other values applies highlighting to
+		the whole play area unless this player is a defender, in which
+		case `selection` should be an object with `rank` and `suit`
+		properties identifying a selected card. When called by a defender,
+		this method hightlights cards on the table that can be beaten by
+		the selected card and dims all other cards on the table.
+		{% endcomment %}
+		function highlightPlayArea(selection)
+		{
+			var flag;
+			if ("defending" != playerStatus)
+				flag = !!selection;
+			else
+			{
+				flag = false;
+				$('#play div[data-code]').each(function() {
+					var pair = $(this); 
+					var data = pair.data();
+					var highlight = pair.find('div:last');
+					if (!selection || data.beat)
+						highlight.removeClass('highlight');
+					else if (selection.suit == trumpSuit && data.suit != trumpSuit)
+						highlight.addClass('highlight');
+					else if (selection.suit == data.suit)
+					{
+						var selectionRank = cardRanks[selection.rank];
+						var cardRank = cardRanks[data.rank];
+						highlight.toggleClass('highlight', selectionRank > cardRank);
+					}
+					else 
+						highlight.removeClass('highlight');
+				});
+			}
+			$('#play .input').toggleClass('highlight', flag);
+		}
+		{% comment %}
+			Retrieve information about cards lying on the table
+			that haven't yet been beaten. 
+	
+			Returns a hash with suits as keys and ordered arrays
+			of card rank indexes within a suit as values.  
+		{% endcomment %}
+		function cardsUnbeaten()
+		{
+			var cards = {};
+			$('#play div[data-code]').each(function() {
+				var data = $(this).data();
+				if (undefined != data.beat)
+					return;
+				var rankIndex = cardRanks[data.rank];
+				if (!(data.suit in cards))
+					cards[data.suit] = [ rankIndex ];
+				else
+					cards[data.suit].push(rankIndex);
+			});
+			for (var suit in cards)
+				cards[suit].sort();
+			return cards;
+		}
+		{% comment %}
+			Retrieve ranks of all cards lying on the table,
+			attacking and defending. 
+	
+			Returns an ordered array of rank indexes of
+			all cards being played.  
+		{% endcomment %}
+		function cardRanksOnTable()
+		{
+			var ranks = [];
+			function addRank(rank)
+			{
+				rank = cardRanks[rank];
+				var slot = orderedArraySearch(ranks, rank);
+				if (slot[1] != rank)
+					 ranks.splice(slot[0], 0, rank);
+			}
+			$('#play div[data-code]').each(function() {
+				var data = $(this).data();
+				addRank(data.rank);
+				if (undefined != data.beatRank)
+					addRank(data.beatRank);
+			});
+			return ranks;
+		}
+		{% comment %}
+			Tell whether there are any cards on the table.
+		{% endcomment %}
+		function hasCardsOnTable()
+		{
+			return 0 < $('#play div[data-code]:first').length;
+		}
+	// --></script>
