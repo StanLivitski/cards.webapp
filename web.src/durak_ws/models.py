@@ -1606,7 +1606,7 @@ class DropBox:
     A receptacle for messages that must be processed in
     a sequence.
     
-    Objects of this class are intended to serve a mix-ins or
+    Objects of this class are intended to serve as mix-ins or
     delegates for entities that accept messages from concurrent
     senders and process them in the order they were received.
     Messages are submitted via ``submitMessage`` method, either as
