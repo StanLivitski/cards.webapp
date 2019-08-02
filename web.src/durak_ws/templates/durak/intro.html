@@ -1,6 +1,6 @@
-{% extends "durak/page.html" %}
+{% extends "page.html" %}
 {% comment %}
-{# Copyright © 2016, 2017 Stan Livitski #}
+{# Copyright © 2016, 2017, 2019 Stan Livitski #}
 
 {# Licensed under the Apache License, Version 2.0 with modifications #}
 {# and the "Commons Clause" Condition, (the "License"); you may not #}
@@ -22,6 +22,7 @@
 {% endcomment %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans "Start a Durak game" %}{% endblock %}
 
@@ -29,6 +30,8 @@
 	{% include "comety/events.js" with renderAPI=False %}
     // --></script>
 	{{ block.super }}
+    <!-- A helper to format localized messages in JavaScript -->
+    <script src="{% static 'js/formatter.js' %}"></script>
     <script type="text/javascript"><!--
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
     comety.defaults.url = "{% url 'intro-updates' %}";
@@ -62,7 +65,7 @@
     		for (event in events)
     			if ((prefix + event) in global)
     			{
-    				handler = global[prefix + event];
+    				var handler = global[prefix + event];
     				if (events[event] != undefined)
     					event = events[event];
     				$(this).on(event, handler);
@@ -70,23 +73,40 @@
     	})
     }
 
+    function roamMessagesFrame()
+	{
+    	var blocks=$("#tab-messages, #panel-body-messages");
+    	var roamingFrame=blocks.find('iframe:hidden');
+    	var target=blocks.filter(':visible');
+    	if (1 < target.length)
+    	{
+    		$('a[data-toggle="tab"][href="#tab-settings"]').tab('show');
+    		roamingFrame=blocks.find('iframe');
+    	}
+    	if (0 < roamingFrame.length && 0 < target.length)
+    		target.eq(-1).prepend(roamingFrame);
+	}
+
     $(function() {
     	initForms();
+		$(window).resize(roamMessagesFrame);
+		$('a[data-toggle="tab"][href="#tab-messages"]').on('shown.bs.tab', roamMessagesFrame);
+		roamMessagesFrame();
     })
     // --></script>
 {% endblock head_scripts %}
 
 {% block content %}
 	{% if error %}
-<div class="modal" id="error-modal" tabindex="-1" role="dialog"
- aria-labelledby="error-modal-label" data-show="true">
+<div class="modal" id="modal-error" tabindex="-1" role="dialog"
+ aria-labelledby="label-modal-error" data-show="true">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal"
          aria-label="Close"><span aria-hidden="true">&times;</span>
         </button>
-        <h4 class="modal-title" id="error-modal-label">{% trans "Error setting up game" %}</h4>
+        <h4 class="modal-title" id="label-modal-error">{% trans "Error setting up game" %}</h4>
       </div>
       <div class="modal-body">
       	{{ error|escape }}
@@ -100,22 +120,22 @@
   </div>
 </div>
 <script type="text/javascript"><!--
-	$('#error-modal').modal('show');
+	$('#modal-error').modal('show');
 // --></script>
 	{% endif %}
 	{% if playerNo == 0 %}
-<div class="modal" id="nameless-confirm-modal" tabindex="-1" role="dialog" aria-labelledby="nameless-confirm-label">
+<div class="modal" id="modal-nameless" tabindex="-1" role="dialog" aria-labelledby="label-nameless">
   <div class="modal-dialog" role="document">
     <div class="modal-content">
       <div class="modal-header">
         <button type="button" class="close" data-dismiss="modal"
          aria-label="Close"><span aria-hidden="true">&times;</span>
         </button>
-        <h4 class="modal-title" id="nameless-confirm-label">{% trans "Confirm nameless players" %}</h4>
+        <h4 class="modal-title" id="label-nameless">{% trans "Confirm nameless players" %}</h4>
       </div>
       <div class="modal-body">
       	{% trans "Player(s)" %}
-      	<span id="nameless-confirm-numbers"></span>
+      	<span id="text-numbers-nameless"></span>
       	{% trans "have not entered their names." %}<br />
 		{% trans "Start the game with nameless players?" %}
       </div>
@@ -132,6 +152,176 @@
 </div>
 	{% endif %}
 <div class="row">
+<div class="col-xs-12" id="panel-players"></div>
+{# comment "Injects player info into client-side JS, replacing some of the following template code" #}
+<script type="text/javascript"><!--
+	var PLAYER_INFO = [
+    {% for playerInfo in checkin.playerStata %}
+    	{
+    		{% if playerNo == 0 %}id: "{{ playerInfo.0 }}",{% endif %}
+    		name: {% if playerInfo.1 %}"{{ playerInfo.1|escapejs }}"{% else %}null{% endif %},
+    		status: {% if forloop.counter0 == playerNo %}{% comment %}
+    			{% endcomment %}"{% trans "you" %}"{% comment %}
+        		{% endcomment %}{% else %}"{{ playerInfo.2 }}"{% endif %}
+    	},
+    {% endfor %}
+	];
+	var seat = {{playerNo}};
+	var CSRF_TOKEN_CONTROL = $("{% csrf_token %}", document);
+	var NAME_STUB_FORMAT = Formatter([{% trans "'Player ', '%d'" %}]);
+
+	function renderPlayerNameForm(i, player)
+	{
+		var form = $('<form/>', document);
+		if (i == seat)
+		{
+			form.attr({
+				method: "POST",
+				id: "form-name",
+			});
+			form.prepend(CSRF_TOKEN_CONTROL.clone());
+			if (0 == seat)
+				form.attr('class', "col-xs-12 col-sm-8 col-md-10");
+		}
+		var inputGroup = $(
+			'<div class="input-group">'
+			+ '<span class="input-group-addon">' + (i + 1) + '. </span>'
+			+ '<input type="text" class="form-control"\
+				 placeholder="{% trans 'Enter name' %}" name="player-name"/>'
+			+ '<span class="input-group-addon"><span class="text-info"></span></span>'
+			+ '</div>',
+			document);
+		var name = null != player['name'] ? player.name :
+			i != seat ? NAME_STUB_FORMAT.format(i + 1) : null;
+		var input = inputGroup.find('input');
+		if (null != name)
+			input.val(name);
+		if (i != seat)
+			input.attr('readonly', 'readonly');
+		else
+			input.attr('id', 'input-player-name');
+		inputGroup.find("span.text-info").last().text(player.status);
+		form.append(inputGroup);
+		return form;
+	}
+	{% if playerNo == 0 %}
+	var INVITE_LABEL_NAMED_FORMAT = Formatter([
+		{% blocktrans %}'Please copy or download this URL and ask ',
+		'%s', ' to open it in his/her browser:'{% endblocktrans %}
+	]);
+	var INVITE_LABEL_UNNAMED_FORMAT = Formatter([
+   		{% blocktrans %}'Please copy or download this URL and ask Player ',
+   		'%d', ' to open it in his/her browser:'{% endblocktrans %}
+   	]);
+	
+	function renderInvitationForm(i, player)
+	{
+		var form = $(
+			'<div class="panel-body"><form id="form-invite" target="_blank">'
+			+ '<label for="input-invite-url-'+ i + '"/>'
+			+ '<div class="col-xs-11" style="padding: 0;">'
+			+ '<input type="text" class="form-control" id="input-invite-url-' + i
+			+ '" readonly/></div>'
+			+ '<div class="col-xs-1" style="padding: 0;">'
+			+ '<input type="hidden" name="seat" value="' + i + '" />' 
+			+ '<button name="action" value="invitation-download" title="'
+			+ "{% trans 'Download' %}" + '" class="btn btn-default"'
+			+ 'style="margin: 0 0 0 auto; display: block;">'
+			+ '<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>'
+			+ '<span class="sr-only">{% trans "Download" %}</span>'
+			+ '</button></div>'
+			+ '</form></div>',
+			document);
+		form.find('input').first().val("{{ URLPrefix }}{% url 'intro' '' %}" + player.id);
+		form.find('label').first().text(
+			null == player.name
+			? INVITE_LABEL_UNNAMED_FORMAT.format(i + 1)
+			: INVITE_LABEL_NAMED_FORMAT.format(player.name)
+		);
+		return form;
+	}
+
+	var ready = {% if checkin.ready %}true{% else %}false{% endif %};
+
+	function form_start_submit() {
+		if(!ready)
+		 	return false;
+		var nonames = [];
+		for (var i=0; i<PLAYER_INFO.length;)
+			if (null == PLAYER_INFO[i++]['name'])
+				nonames.push(i);
+		if (0 < nonames.length && 0 == $('#modal-nameless:visible').length)
+		{
+			var numbers = '';
+			var delim = '{% trans ", " %}';
+			for (var i = 0;;)
+			{
+				numbers += nonames[i];
+				if (++i < nonames.length)
+					numbers += delim;
+				else
+					break;
+			}
+			$('#text-numbers-nameless').text(numbers);
+			$('#modal-nameless button.btn-primary').click(
+				function() { $('#form-start button').click(); }
+			);
+			$('#modal-nameless').modal('show');
+		 	return false;
+		}
+		else
+			return true;
+	}
+
+	function renderStartForm()
+	{
+		var form = $(
+			'<form method="POST" id="form-start"'
+			+ 'class="col-xs-8 col-xs-offset-2 col-sm-offset-0 col-sm-4 col-md-2">'
+			+ '<button name="action" style="overflow: hidden"'
+			+ '  class="form-control btn btn-primary" value="game-start">'
+			+ '{% trans "Start game" %}</button>'
+			+ '</form>',
+			document);
+		if (!ready)
+			form.find('button').addClass("active").attr('disabled','disabled');
+		form.prepend(CSRF_TOKEN_CONTROL.clone());
+		return form;
+	}
+	{% endif %}
+	function renderPlayerPanel(i, player)
+	{
+		var panel = $('<div class="panel"></div>', document);
+		if (0 != i || 0 != seat)
+			panel.addClass('panel-default');
+		else
+		{
+			panel.addClass('row');
+			panel.css('background', 'transparent');
+		}
+		panel.append(renderPlayerNameForm(i, player));
+		{% if playerNo == 0 %}
+		panel.append(i == 0 ? renderStartForm() : renderInvitationForm(i, player));
+		{% endif %}
+		return panel;
+	}
+
+	(function (playerInfo, container) {
+		for (var i=0; i<playerInfo.length; i++)
+		{
+			var panel = renderPlayerPanel(i, playerInfo[i]);
+			container.append(panel);
+		}		
+	})(PLAYER_INFO, $("#panel-players"));
+
+	$("#input-player-name").change(function()
+	{
+		$(this).parents('form').submit();
+		return true;
+	});
+// --></script>
+
+{% comment "Render this dynamically using client-side JS" %}
 	<div class="col-xs-12">
 	{% for playerInfo in checkin.playerStata %}
 		{% if forloop.counter0 == 0 and playerNo == 0 %}
@@ -147,9 +337,10 @@
 		{% else %}
 			<form>
 		{% endif %}
+		{# stopped here #}
 				<div class="input-group">
 					<span class="input-group-addon">{{ forloop.counter }}. </span>
-					<input type="text" class="form-control" id="name-change"
+					<input type="text" class="form-control"
 					 name="player-name" placeholder="{% trans 'Enter name' %}" 
 					{% if playerInfo.1 %}
 					 value="{{ playerInfo.1 }}" 
@@ -160,14 +351,14 @@
 					{% if forloop.counter0 != playerNo %}
 					 readonly />
 					{% else %}
-					/>
+					 id="input-player-name" />
 					<script type="text/javascript"><!--
 						function name_change()
 						{
 							$(this).parents('form').submit();
 							return true;
 						}
-						$("#name-change").change(name_change);
+						$("#input-player-name").change(name_change);
 					//--></script>
 					{% endif %}
 					<span class="input-group-addon">
@@ -199,7 +390,7 @@
 						{% if not playerInfo.1 %}{{ forloop.counter }},{% endif %}
 					{% endfor %}
 					]
-					if (0 < nonames.length && 0 == $('#nameless-confirm-modal:visible').length)
+					if (0 < nonames.length && 0 == $('#modal-nameless:visible').length)
 					{
 						var numbers = '';
 						var delim = '{% trans ", " %}';
@@ -211,11 +402,11 @@
 							else
 								break;
 						}
-						$('#nameless-confirm-numbers').text(numbers);
-						$('#nameless-confirm-modal button.btn-primary').click(
+						$('#text-numbers-nameless').text(numbers);
+						$('#modal-nameless button.btn-primary').click(
 							function() { $('#form-start button').click(); }
 						);
-						$('#nameless-confirm-modal').modal('show');
+						$('#modal-nameless').modal('show');
 					 	return false;
 					}
 					else
@@ -228,14 +419,14 @@
 			</form>
 			{% else %}
 			<div class="panel-body"><form id="form-invite" target="_blank">
-			    <label for="invite-url">
+			    <label for="input-invite-url">
 {% if playerInfo.1 %}{% blocktrans with player=playerInfo.1 %}Please copy or download this URL and
 ask {{ player }} to open it in his/her browser:{% endblocktrans %}
 {% else %}{% blocktrans with no=forloop.counter %}Please copy or download this URL and ask
 Player {{ no }} to open it in his/her browser:{% endblocktrans %}
 {% endif %}		</label>
 				<div class="col-xs-11" style="padding: 0;">
-					<input type="text" class="form-control" id="invite-url"
+					<input type="text" class="form-control" id="input-invite-url"
 						value="{{ URLPrefix }}{% url 'intro' playerInfo.0 %}" readonly>
 				</div>
 				<div class="col-xs-1" style="padding: 0;">
@@ -252,12 +443,21 @@ Player {{ no }} to open it in his/her browser:{% endblocktrans %}
 		</div>
 	{% endfor %}
 	</div>
+{% endcomment %}{# "Render this dynamically using client-side JS" #}
 </div>
 <div class="row">
 	<div class="col-xs-12 col-md-5">
-		<div class="panel panel-default">
-			<div class="panel-heading">{% trans "Settings" %}</div>
-			<div class="panel-body">
+		<div class="panel panel-default tab-content">
+			<ul class="panel-heading nav nav-tabs hidden-md hidden-lg" style="padding: 0">
+			  <li role="presentation" class="active"><a href="#tab-settings"
+			   aria-controls="tab-settings" role="tab"
+			   data-toggle="tab">{% trans "Settings" %}</a></li>
+			  <li role="presentation"><a href="#tab-messages"
+			   aria-controls="tab-messages" role="tab"
+			   data-toggle="tab">{% trans "Messages" %}</a></li>
+			</ul>
+			<div class="panel-heading visible-md visible-lg">{% trans "Settings" %}</div>
+			<div id="tab-settings" role="tabpanel" class="tab-pane active panel-body">
 			{% if playerNo == 0 %}
 				<form class="form-horizontal" method="POST" id="form-settings">
 					{% csrf_token %}
@@ -451,12 +651,15 @@ Player {{ no }} to open it in his/her browser:{% endblocktrans %}
 				//--></script>
 			{% endif %}
 			</div>
+			<div id="tab-messages" role="tabpanel"
+			 class="tab-pane panel-body embed-responsive chat-container"></div>
 		</div>
 	</div>
 	<div class="col-md-7 visible-md visible-lg">
 		<div class="panel panel-default">
-			<div class="panel-heading">{% trans "Messages" %}</div>
-			<div class="panel-body">TODO: messages in an iframe</div>
+			<div class="panel-heading visible-md visible-lg">{% trans "Messages" %}</div>
+			<div id="panel-body-messages" class="panel-body embed-responsive chat-container">
+			<iframe src="{% url 'chat' %}" class="embed-responsive-item"></iframe></div>
 		</div>
 	</div>
 </div>

@@ -119,6 +119,7 @@ class TableView(ViewWithEvents):
             checkIn is not None and
             checkIn.id == gameId and
             checkIn.game is not None and
+            playerId is not None and
             playerId in checkIn.tokens
         )
         if passed:
@@ -140,8 +141,8 @@ class TableView(ViewWithEvents):
             Success status of processing. 
         """
 
+        userId = request.session[self.PLAYER_IN_SESSION]
         try:
-            userId = request.session[self.PLAYER_IN_SESSION]
             checkIn = PlayerCheckIn.FACILITIES[userId]
             position = checkIn.tokens[userId]
             player = checkIn.game.players[position]
@@ -185,7 +186,9 @@ class TableView(ViewWithEvents):
             position = checkIn.tokens[userId]
             opponents = checkIn.opponentMap(position, self.SEATING_CAPACITY)
             contextVars = {
+                'bodyClass' : "table-background",
                 'game' : checkIn.game,
+                'gameApp' : 'durak',
                 'layoutTemplate' : 'durak/table/%s.html' % layout,
                 'opponents' : opponents,
                 'player' : checkIn.game.players[position],
@@ -199,7 +202,7 @@ class TableView(ViewWithEvents):
             return response
         except:
             log = logging.getLogger(type(self).__module__)
-            log.error('Error serving the page to user "%s"',
+            log.error('Error serving %s to user "%s"', type(self).__name__,
                       userId, exc_info=True)
             return HttpResponseServerError()
 

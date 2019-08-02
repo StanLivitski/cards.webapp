@@ -1,5 +1,5 @@
 /*!
- * Copyright 2016 Stan Livitski
+ * Copyright 2016,2019 Stan Livitski
  * 
  * Licensed under the Apache License, Version 2.0 with modifications
  * and the "Commons Clause" Condition, (the "License"); you may not
@@ -21,8 +21,60 @@
  */
 @CHARSET "UTF-8";
 
-.table-background
+html, body
 {
-	background: #663300 url("../images/table.png") repeat;
-    color: #99ccff;
+	height:100%;
+}
+
+#entire-page
+{
+    position: relative;
+    top: 0;
+    left: 0;
+	border: 0 none;
+	min-height: 100%;
+	padding: 2.5ex 0
+}
+
+.panel-body, .modal-content {
+    color: black !important;
+}
+
+.message {
+	background-color: #d9edf7;
+	margin: 0.5em 0;
+	padding: 0 0.5em;
+	min-width: 67%;
+	float: left;
+}
+
+.message.you {
+	background-color: #dff0d8;
+	text-align: right;
+	float: right;
+}
+
+.message header {
+	font-size: smaller;
+	font-weight: bold;
+}
+
+.messages {
+	padding: 10px 20px;
+	font-size: large;
+}
+
+#form-send-message {
+	background-color: #ffffff;
+	padding-top: 5px;
+}
+
+.chat-container
+{
+	padding-bottom: 50%;
+}
+
+.cache
+{
+	display: none;
 }

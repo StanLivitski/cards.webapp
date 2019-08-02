@@ -325,6 +325,11 @@ class PlayerCheckIn:
     port
     tokens
     uiDispatcher
+    chatDispatcher : comety.Dispatcher
+        Comety dispatcher for sending chat messages between players.
+        Players registered with the dispatcher using their tokens, when
+        such tokens are created, and never unregistered, so messages from
+        a player who left may still be delivered.
     FACILITIES : collections.Mapping
         A class variable containing player ids mapped to objects of this
         type used to set up games for those players. Since a game id is
@@ -463,12 +468,14 @@ class PlayerCheckIn:
         self._players = [ None ] * count
         # values are tuples of ``(token, player object)`` for established sessions,
         # tuples of ``(token,)`` otherwise
+        self.chatDispatcher = comety.Dispatcher()
         self._tokens = {} # values are players' positions at the table
         i = 0
         for token in self.createTokens(count):
             self._tokens[token] = i
             self._players[i] = (token,)
             self.FACILITIES[token] = self
+            self.chatDispatcher.registerUser(token, False)
             i += 1
         cls = type(self)
         if getattr(cls, '_activeFacilityId', None) is None:
@@ -782,6 +789,7 @@ class PlayerCheckIn:
         ...
         ValueError: Unknown token: "..."
         """
+
         if token is None:
             if playerNo is None:
                 raise TypeError('`fetchPlayer()` is called without arguments')
@@ -1195,7 +1203,7 @@ class PlayerCheckIn:
                 assert self._tokens[self._players[i][0]] == i
                 token = self._players[i][0]
                 del self._tokens[token]
-                del self.FACILITIES[token]
+                # del self.FACILITIES[token] # keep old token to avoid duplicates
             self._players = self._players[0:newCapacity]
         elif i < newCapacity:
             tokens = self.createTokens(newCapacity - i)
@@ -1203,6 +1211,7 @@ class PlayerCheckIn:
                 self._tokens[token] = i
                 self._players.append((token,))
                 self.FACILITIES[token] = self
+                self.chatDispatcher.registerUser(token, False)
                 i += 1
         self._settings['players'] = newCapacity
         if oldCapacity != newCapacity:           

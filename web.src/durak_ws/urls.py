@@ -37,15 +37,17 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
 from django.conf.urls import url
-from . import intro, table
+from . import intro, chat, table
 
 _STYLE_RE = r'[^">]*'
 
 urlpatterns = [
     url(r'^$', intro.IntroView.as_view(), name='intro'),
-    url('^join/' + r'([a-z]+)$',
+    url('^join/' + r'([a-z]*)$',
         intro.IntroView.as_view(), name='intro'),
     url('^intro$', intro.IntroView.as_view(updateMode=True), name='intro-updates'),
+    url('^chat$', chat.ChatView.as_view(), name='chat'),
+    url('^messages$', chat.ChatView.as_view(updateMode=True), name='chat-messages'),
     #url(r'^comety/events.js$', TemplateView.as_view(template_name='comety/events.js'), name='test'),
     url(r'^table$', table.TableView.as_view(), name='table'),
     url(r'^table/dimmer/(?P<style>%s)$' % _STYLE_RE,

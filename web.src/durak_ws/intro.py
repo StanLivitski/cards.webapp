@@ -495,7 +495,9 @@ class IntroView(ViewWithEvents):
             playerNo = checkIn.tokens[userId]
             countRange = WebGame.getPlayerCountRange(checkIn.gameSettings)
             contextVars = {
+                'bodyClass' : "table-background",
                 'checkin' : checkIn,
+                'gameApp' : 'durak',
                 'minimumPlayers' : countRange[0],
                 'maximumPlayers' : min(countRange[1],
                                        durak_ws.table.TableView.SEATING_CAPACITY),
@@ -518,7 +520,7 @@ class IntroView(ViewWithEvents):
             return response
         except:
             log = logging.getLogger(type(self).__module__)
-            log.error('Error serving the page to user "%s"',
+            log.error('Error serving %s to user "%s"', type(self).__name__,
                       userId, exc_info=True)
             return HttpResponseServerError()
 

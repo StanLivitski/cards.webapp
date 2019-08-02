@@ -1,0 +1,109 @@
+{% extends "page.html" %}
+{% comment %}
+{# Copyright © 2019 Stan Livitski #}
+
+{# Licensed under the Apache License, Version 2.0 with modifications #}
+{# and the "Commons Clause" Condition, (the "License"); you may not #}
+{# use this file except in compliance with the License. You may obtain #}
+{# a copy of the License at #}
+
+{#  https://raw.githubusercontent.com/StanLivitski/cards.webapp/master/LICENSE #}
+
+{# The grant of rights under the License will not include, and the License #}
+{# does not grant to you, the right to Sell the Software, or use it for #}
+{# gambling, with the exception of certain additions or modifications #}
+{# to the Software submitted to the Licensor by third parties. #}
+
+{# Unless required by applicable law or agreed to in writing, software #}
+{# distributed under the License is distributed on an "AS IS" BASIS, #}
+{# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. #}
+{# See the License for the specific language governing permissions and #}
+{# limitations under the License. #}
+{% endcomment %}
+
+{% load i18n %}
+
+{% block title %}{% trans "Messages" %}{% endblock %}
+
+{% block head_scripts %}
+	{{ block.super }}
+	<!-- 
+	<article class="message"><header>Alex to all:</header>
+	Let's play a quick one.</article>
+	<div class="clearfix"></div>
+	<article class="message you"><header>You to all:</header>
+	Okay</article>
+	<article class="message"><header>Alex to you:</header>
+	Юстас, доложите обстановку.</article>
+	<div class="clearfix"></div>
+	<article class="message you"><header>You to Alex:</header>
+	Юстас - Алексу</article>
+	<div class="clearfix"></div>
+	<article class="message you"><header>You to Alex:</header>
+	Пастор в Женеве</article>
+	-->
+    <script type="text/javascript"><!--
+    $(function() {
+    	var dest=$("main.messages");
+    	if (window.parent !== window)
+    	{
+    		var src = $(window.parent.document).find('.messages');
+    		if (0 == src.length)
+    			$(window.parent.document).find('body').append(
+    				'<div class="cache messages"></div>'
+    			);
+    		else
+	    		dest.append(src.contents().clone(true));
+    	}
+        // TODO: if (sessionStorage != null && 0 == dest.contents().length)
+        // render `dest` from sessionStorage data, then copy it back to cache, if available
+    });
+
+    // Yep! It works!
+    // if (window.parent !== window)
+    //	$(window.parent.document).find('body').prepend('<p style="display: none">gobledygook</p>');
+    // else ; // insert into this page's chat panel
+    {% include "comety/events.js" with renderTiming=False autoStart=True %}
+    with (comety.defaults)
+    {
+    	url = " {% url 'chat-messages' %}";
+    	timeout = 22.2;
+    	handler = function(events, loopParams)
+    	{
+    		console.log(events);
+    		return events.length;
+    	}
+    }
+    var seat = {{seat}};
+    // --></script>
+{% endblock head_scripts %}
+
+{% block body %}
+<body>
+	<main class="container messages" style="padding-bottom: 7em"></main>
+
+	<form method="POST" id="form-send-message" onSubmit="comety.stopUpdates()"
+	 class="form-horizontal container-fluid" style="height: 7em; width: 100%;
+	  overflow: hidden; position: fixed; bottom: 0;">
+		{% csrf_token %}
+		<textarea class="form-control" rows="1" style="resize: none"
+		 placeholder="{% trans 'Type your message here' %}"
+		 id="send-message-text" name="text"></textarea>
+		<div class="form-group" style="padding-top: 0.5ex">
+			<div class="col-xs-4 col-md-3">
+		        <button type="submit" style="width: 80%; margin-left: 10%;"
+		         class="btn btn-primary">{% trans "Send" %}</button>
+			</div>
+			<label for="send-message-to" class="col-xs-2 col-md-1 control-label"
+			 style="padding-top: 0.5em; text-align: center;">{% trans "to:" %}</label>
+			<div class="col-xs-6 col-md-8">
+				<select class="form-control" name="to"
+				 id="send-message-to">
+					<option value="">{% trans "all" %}</option>
+					<option value="0">Alex</option>
+				</select>
+			</div>
+		</div>
+	</form>
+</body>
+{% endblock %}
