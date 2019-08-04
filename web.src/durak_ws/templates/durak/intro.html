@@ -36,7 +36,7 @@
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
     comety.defaults.url = "{% url 'intro-updates' %}";
     (function() {
-    	defaultHandler = comety.defaults.handler;
+    	var defaultHandler = comety.defaults.handler;
     	function handler(events, loopParams) {
         	if ("game-start" == events[0][1].event)
        		{
@@ -153,7 +153,7 @@
 	{% endif %}
 <div class="row">
 <div class="col-xs-12" id="panel-players"></div>
-{# comment "Injects player info into client-side JS, replacing some of the following template code" #}
+
 <script type="text/javascript"><!--
 	var PLAYER_INFO = [
     {% for playerInfo in checkin.playerStata %}
@@ -161,7 +161,7 @@
     		{% if playerNo == 0 %}id: "{{ playerInfo.0 }}",{% endif %}
     		name: {% if playerInfo.1 %}"{{ playerInfo.1|escapejs }}"{% else %}null{% endif %},
     		status: {% if forloop.counter0 == playerNo %}{% comment %}
-    			{% endcomment %}"{% trans "you" %}"{% comment %}
+    			{% endcomment %}"{% trans "you" context "player status" %}"{% comment %}
         		{% endcomment %}{% else %}"{{ playerInfo.2 }}"{% endif %}
     	},
     {% endfor %}
@@ -169,6 +169,19 @@
 	var seat = {{playerNo}};
 	var CSRF_TOKEN_CONTROL = $("{% csrf_token %}", document);
 	var NAME_STUB_FORMAT = Formatter([{% trans "'Player ', '%d'" %}]);
+
+	function getUserCount()
+	{
+		return PLAYER_INFO.length;
+	}
+
+	function getUserName(i, formatter)
+	{
+		var player = PLAYER_INFO[i];
+		if (null == formatter)
+			formatter = NAME_STUB_FORMAT;
+		return null != player['name'] ? player.name : formatter.format(i + 1);
+	}
 
 	function renderPlayerNameForm(i, player)
 	{
@@ -206,11 +219,11 @@
 	}
 	{% if playerNo == 0 %}
 	var INVITE_LABEL_NAMED_FORMAT = Formatter([
-		{% blocktrans %}'Please copy or download this URL and ask ',
+		{% blocktrans trimmed %}'Please copy or download this URL and ask ',
 		'%s', ' to open it in his/her browser:'{% endblocktrans %}
 	]);
 	var INVITE_LABEL_UNNAMED_FORMAT = Formatter([
-   		{% blocktrans %}'Please copy or download this URL and ask Player ',
+   		{% blocktrans trimmed %}'Please copy or download this URL and ask Player ',
    		'%d', ' to open it in his/her browser:'{% endblocktrans %}
    	]);
 	
@@ -320,130 +333,6 @@
 		return true;
 	});
 // --></script>
-
-{% comment "Render this dynamically using client-side JS" %}
-	<div class="col-xs-12">
-	{% for playerInfo in checkin.playerStata %}
-		{% if forloop.counter0 == 0 and playerNo == 0 %}
-		<div class="panel row" style="background: transparent">
-		{% else %}
-		<div class="panel panel-default">
-		{% endif %}
-		{% if forloop.counter0 == playerNo %}
-			<form method="POST" id="form-name"
-			{% if playerNo == 0 %} class="col-xs-12 col-sm-8 col-md-10"{% endif %}
-			>
-				{% csrf_token %}
-		{% else %}
-			<form>
-		{% endif %}
-		{# stopped here #}
-				<div class="input-group">
-					<span class="input-group-addon">{{ forloop.counter }}. </span>
-					<input type="text" class="form-control"
-					 name="player-name" placeholder="{% trans 'Enter name' %}" 
-					{% if playerInfo.1 %}
-					 value="{{ playerInfo.1 }}" 
-					{% elif forloop.counter0 != playerNo %}
-					 value="
-{% blocktrans with no=forloop.counter %}Player {{ no }}{% endblocktrans %}" 
-					{% endif %}
-					{% if forloop.counter0 != playerNo %}
-					 readonly />
-					{% else %}
-					 id="input-player-name" />
-					<script type="text/javascript"><!--
-						function name_change()
-						{
-							$(this).parents('form').submit();
-							return true;
-						}
-						$("#input-player-name").change(name_change);
-					//--></script>
-					{% endif %}
-					<span class="input-group-addon">
-						<span class="text-info">
-						{% if forloop.counter0 == playerNo %}
-							{% trans "you" %}
-						{% else %}
-							{{ playerInfo.2 }}
-						{% endif %}
-						</span>
-					</span>
-				</div>
-			</form>
-			{% if playerNo == 0 %}
-				{% if forloop.counter0 == 0 %}
-			<form method="POST" id="form-start"
-			 class="col-xs-8 col-xs-offset-2 col-sm-offset-0 col-sm-4 col-md-2">
-				{% csrf_token %}
-				<button name="action" style="overflow: hidden;"
-				 class="form-control btn btn-primary
-					{% if checkin.ready %}"{% else %} active" disabled{% endif %}
-				 value="game-start">
-				{% trans "Start game" %}</button>
-				<script type="text/javascript"><!--
-				function form_start_submit() {
-				{% if checkin.ready %}
-					var nonames = [
-					{% for playerInfo in checkin.playerStata %}
-						{% if not playerInfo.1 %}{{ forloop.counter }},{% endif %}
-					{% endfor %}
-					]
-					if (0 < nonames.length && 0 == $('#modal-nameless:visible').length)
-					{
-						var numbers = '';
-						var delim = '{% trans ", " %}';
-						for (var i = 0;;)
-						{
-							numbers += nonames[i];
-							if (++i < nonames.length)
-								numbers += delim;
-							else
-								break;
-						}
-						$('#text-numbers-nameless').text(numbers);
-						$('#modal-nameless button.btn-primary').click(
-							function() { $('#form-start button').click(); }
-						);
-						$('#modal-nameless').modal('show');
-					 	return false;
-					}
-					else
-						return true;
-				{% else %} 
-				 	return false;
-				{% endif %}
-				}
-				//--></script>
-			</form>
-			{% else %}
-			<div class="panel-body"><form id="form-invite" target="_blank">
-			    <label for="input-invite-url">
-{% if playerInfo.1 %}{% blocktrans with player=playerInfo.1 %}Please copy or download this URL and
-ask {{ player }} to open it in his/her browser:{% endblocktrans %}
-{% else %}{% blocktrans with no=forloop.counter %}Please copy or download this URL and ask
-Player {{ no }} to open it in his/her browser:{% endblocktrans %}
-{% endif %}		</label>
-				<div class="col-xs-11" style="padding: 0;">
-					<input type="text" class="form-control" id="input-invite-url"
-						value="{{ URLPrefix }}{% url 'intro' playerInfo.0 %}" readonly>
-				</div>
-				<div class="col-xs-1" style="padding: 0;">
-					<input type="hidden" name="seat" value="{{ forloop.counter0 }}" /> 
-					<button name="action" value="invitation-download" title="{% trans 'Download' %}"
-						class="btn btn-default" style="margin: 0 0 0 auto; display: block;">
-						<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>
-						<span class="sr-only">{% trans "Download" %}</span>
-					</button>
-				</div>
-			</form></div>
-			{% endif %}
-		{% endif %}
-		</div>
-	{% endfor %}
-	</div>
-{% endcomment %}{# "Render this dynamically using client-side JS" #}
 </div>
 <div class="row">
 	<div class="col-xs-12 col-md-5">

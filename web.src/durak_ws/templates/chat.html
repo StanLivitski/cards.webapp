@@ -22,27 +22,33 @@
 {% endcomment %}
 
 {% load i18n %}
+{% load staticfiles %}
 
 {% block title %}{% trans "Messages" %}{% endblock %}
 
 {% block head_scripts %}
 	{{ block.super }}
-	<!-- 
-	<article class="message"><header>Alex to all:</header>
-	Let's play a quick one.</article>
-	<div class="clearfix"></div>
-	<article class="message you"><header>You to all:</header>
-	Okay</article>
-	<article class="message"><header>Alex to you:</header>
-	Юстас, доложите обстановку.</article>
-	<div class="clearfix"></div>
-	<article class="message you"><header>You to Alex:</header>
-	Юстас - Алексу</article>
-	<div class="clearfix"></div>
-	<article class="message you"><header>You to Alex:</header>
-	Пастор в Женеве</article>
-	-->
+    <script src="{% static 'js/formatter.js' %}"></script>
     <script type="text/javascript"><!--
+    var BR = $('<br/>', document);
+    var MESSAGE_ARTICLE = $('<article class="message"><header></header></article>', document);
+    var EOL_PATTERN = /\r?\n/;
+    var CLEARFIX = $('<div class="clearfix"/>', document);
+
+    var seat = {{seat}};
+
+    function wrapMessage(text)
+    {
+    	var article = MESSAGE_ARTICLE.clone();
+    	var split = text.split(EOL_PATTERN);
+    	for (var i=0; i<split.length; i++)
+    	{
+    		if (0<i) article.append(BR.clone());
+    		article.append(document.createTextNode(split[i]));
+    	}
+    	return article;
+    }
+ 
     $(function() {
     	var dest=$("main.messages");
     	if (window.parent !== window)
@@ -59,22 +65,86 @@
         // render `dest` from sessionStorage data, then copy it back to cache, if available
     });
 
-    // Yep! It works!
-    // if (window.parent !== window)
-    //	$(window.parent.document).find('body').prepend('<p style="display: none">gobledygook</p>');
-    // else ; // insert into this page's chat panel
+    var MESSAGE_BROADCAST_HEADER_FORMAT = Formatter([{% trans "'%s',' to all:'" %}]);
+    var MESSAGE_OUTGOING_HEADER_FORMAT = Formatter([{% trans "'You to ','%s',':'" %}]);
+    var MESSAGE_DIRECTED_HEADER_FORMAT = Formatter([{% trans "'%s',' to ','%s',':'" %}]);
+    var MESSAGE_INCOMING_HEADER_FORMAT = Formatter([{% trans "'%s',' to you:'" %}]);
+	function postMessage(from, to, text, sent)
+    {
+		var article = wrapMessage(text);
+		if (sent)
+			article.addClass('you');
+		var header;
+		if (null == to && null == from)
+			header = '{% trans "You to all:" %}';
+		else if (null == to)
+			header = MESSAGE_BROADCAST_HEADER_FORMAT.format(from);
+		else if (null == from)
+			header = MESSAGE_OUTGOING_HEADER_FORMAT.format(to);
+		else if ('' == to)
+			header = MESSAGE_INCOMING_HEADER_FORMAT.format(from);
+		else
+			header = MESSAGE_DIRECTED_HEADER_FORMAT.format(from, to);
+		article.find('header').first().text(header);
+		var dest = $(window.parent.document).find('.cache.messages');
+		$.merge(dest, $('main.messages'));
+		if (0 != dest.first().children().length)
+			dest.append(CLEARFIX.clone());
+		dest.append(article);
+    }
+
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
+	var NAME_STUB_FORMAT = Formatter([
+		{% blocktrans context "message sender" %}'Player ', '%d'{% endblocktrans %}
+	]);
     with (comety.defaults)
     {
     	url = " {% url 'chat-messages' %}";
     	timeout = 22.2;
     	handler = function(events, loopParams)
     	{
-    		console.log(events);
-    		return events.length;
+    		var i;
+    		for (i = 0; events.length > i; i++)
+    		{
+    			var message = events[i];
+    			if (message[1].event != 'message')
+    			{
+    				if (typeof(console) == 'object' && console instanceof Object && 'warn' in console)
+    					console.warn('Event #' + i + ' is not a message: ' + message);
+    				continue;
+    			}
+    			if (message[0][1] == seat)
+    				continue;
+    			var sender = message[0][0];
+    			if (null == sender || '' == $.trim(sender))
+    				sender = NAME_STUB_FORMAT.format(message[0][1] + 1);
+    			var receiver = null != message[1].targetUsers ? '' : null;
+   				postMessage(sender, receiver, message[1].text);
+    		}
+    		return i;
     	}
     }
-    var seat = {{seat}};
+
+    var getUserCount = getUserCount in window.parent ? window.parent.getUserCount
+    	: function() { return 0; };
+    var getUserName = getUserName in window.parent ? window.parent.getUserName
+    	: function(i, f) { return null; };
+    function updateRecipients()
+    {
+    	var target = $('#send-message-to');
+    	target.empty();
+    	target.prepend($('<option value="">{% trans "all" %}</option>', document));
+    	var count = getUserCount();
+    	for (var i=0; i<count; i++)
+    	{
+    		if (i == seat) continue;
+    		var option = $('<option value="' + i + '"/>', document);
+    		option.text(getUserName(i));
+    		target.append(option);
+    	}
+    }
+    $(updateRecipients);
+    // TODO: event handler to receive player info updates from parent window
     // --></script>
 {% endblock head_scripts %}
 
@@ -91,19 +161,46 @@
 		 id="send-message-text" name="text"></textarea>
 		<div class="form-group" style="padding-top: 0.5ex">
 			<div class="col-xs-4 col-md-3">
-		        <button type="submit" style="width: 80%; margin-left: 10%;"
-		         class="btn btn-primary">{% trans "Send" %}</button>
+		        <button type="button" style="width: 80%; margin-left: 10%;"
+		         class="btn btn-primary" id="send-message-button">{% trans "Send" %}</button>
 			</div>
 			<label for="send-message-to" class="col-xs-2 col-md-1 control-label"
 			 style="padding-top: 0.5em; text-align: center;">{% trans "to:" %}</label>
 			<div class="col-xs-6 col-md-8">
 				<select class="form-control" name="to"
-				 id="send-message-to">
-					<option value="">{% trans "all" %}</option>
-					<option value="0">Alex</option>
-				</select>
+				 id="send-message-to"></select>
 			</div>
 		</div>
 	</form>
+	<script type="text/javascript"><!--
+	var messageRequest;
+	$('#send-message-button').click(function(event)
+	{
+		var input = $("#send-message-text");
+		var text = input.val();
+		if (undefined != messageRequest || '' == $.trim(text))
+			return;
+		messageRequest = $.post("{% url 'chat-messages' %}",
+				$("#form-send-message").serialize());
+		messageRequest.done(function()
+		{
+			input.val('');
+			messageRequest = undefined;
+			var to = $("#send-message-to");
+			to = to.val() ? getUserName(parseInt(to.val()), NAME_STUB_FORMAT) : null;
+			postMessage(null, to, text, true);
+		})
+		.fail(function(jqXHR, textStatus, errorThrown)
+		{
+			if (console instanceof Object && 'error' in console)
+				console.error(
+					'Message request ' +
+					(null == textStatus ? 'failed' : textStatus) +
+					(null == errorThrown ? '' : ': ' + errorThrown)
+				);
+			messageRequest = undefined; 
+		});
+	});
+	// --></script>
 </body>
 {% endblock %}

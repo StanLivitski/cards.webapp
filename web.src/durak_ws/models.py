@@ -459,6 +459,9 @@ class PlayerCheckIn:
         else:
             return cls.FACILITIES[cls._activeFacilityId]
 
+    def __str__(self):
+        return type(self).__name__
+
     def __init__(self, gameType = None):
         self._gameType = WebGame if gameType is None else gameType
         self._comety = None
