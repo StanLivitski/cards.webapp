@@ -192,7 +192,7 @@
 		})
 		.fail(function(jqXHR, textStatus, errorThrown)
 		{
-			if (console instanceof Object && 'error' in console)
+			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
 				console.error(
 					'Message request ' +
 					(null == textStatus ? 'failed' : textStatus) +

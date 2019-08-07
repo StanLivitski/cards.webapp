@@ -189,11 +189,11 @@ msgctxt "player status"
 msgid "you"
 msgstr "это вы"
 
-#: models.py:403 models.py:1396 models.py:1398 models.py:1427
+#: models.py:403 models.py:884 models.py:1396 models.py:1398 models.py:1427
 msgid "expected"
 msgstr "ожидается"
 
-#: models.py:404 models.py:1400
+#: models.py:404 models.py:821 models.py:884 models.py:1400
 msgid "joined"
 msgstr "на связи"
 

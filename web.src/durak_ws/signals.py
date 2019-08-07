@@ -107,7 +107,7 @@ def expireSession(sender, **kwargs):
         sender().disconnectSession(userId)
         checkIn = models.PlayerCheckIn.FACILITIES.get(userId)
         if checkIn is not None:
-            checkIn.disconnectPlayer(userId)
+            checkIn.playerConnectionStatus(userId)
     else:
         # NOTE: game id is required to disconnect a player from the game view
         raise NotImplementedError(

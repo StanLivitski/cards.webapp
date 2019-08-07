@@ -408,7 +408,7 @@ class IntroView(ViewWithEvents):
                     checkIn.fetchPlayer(playerNo, token)
                 elif (isinstance(playerOrToken, RemoteEntity)
                      and playerOrToken.offline):
-                    playerOrToken.offline = False
+                    checkIn.playerConnectionStatus(token, True)
                 else:
                     playerOrToken = None
                 if playerOrToken is not None:
@@ -422,8 +422,8 @@ class IntroView(ViewWithEvents):
                     checkIn.fetchPlayer(token = playerOrToken)
                 elif (isinstance(playerOrToken, RemoteEntity)
                      and playerOrToken.offline):
-                    playerOrToken.offline = False
                     playerOrToken = checkIn.id
+                    checkIn.playerConnectionStatus(playerOrToken, True)
                 if type(playerOrToken) is str:
                     request.session[self.PLAYER_IN_SESSION] = token = playerOrToken
                     admitted = True
@@ -436,7 +436,7 @@ class IntroView(ViewWithEvents):
                 request.session[self.GAME_IN_SESSION] = checkIn.id
                 self.updateSessionKey(token, request.session)
                 self.cometyDispatcher = self.cometyDispatcherFor(request, *args)
-                self.cometyDispatcher.registerUser(token)
+                self.cometyDispatcher.registerUser(token, False)
                 target = None
                 if checkIn.game is not None:
                     # if the game is on, send re-joining player to the table

@@ -43,6 +43,21 @@
         		location.replace("{% url 'table' %}");
         		return 0;
        		}
+        	else if ("player-status" == events[0][1].event)
+       		{
+        		var form = $(".form-player").eq(events[0][1].index);
+        		if (1 == form.length)
+        			form.find("span.text-info").last().text(events[0][1].status);
+        		else if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+					console.error('Name form for player #' + (1 + events[0][1].index)
+						+ ' not found or ambiguous when processing event: ' + $.param(events[0][1]));
+        		return 1;
+       		}
+        	/* if ("player-update" == events[0][1].event)
+       		{
+        		console.log(events[0]);
+        		return 1;
+       		} */
         	else
         		return defaultHandler(events, loopParams);
     	}
@@ -185,7 +200,7 @@
 
 	function renderPlayerNameForm(i, player)
 	{
-		var form = $('<form/>', document);
+		var form = $('<form class="form-player"/>', document);
 		if (i == seat)
 		{
 			form.attr({
@@ -194,7 +209,7 @@
 			});
 			form.prepend(CSRF_TOKEN_CONTROL.clone());
 			if (0 == seat)
-				form.attr('class', "col-xs-12 col-sm-8 col-md-10");
+				form.attr('class', "form-player col-xs-12 col-sm-8 col-md-10");
 		}
 		var inputGroup = $(
 			'<div class="input-group">'

@@ -413,6 +413,7 @@ class PlayerCheckIn:
     )
 
     PLAYER_UPDATE_EVENT = 'player-update'
+    PLAYER_STATUS_EVENT = 'player-status'
     SETTINGS_UPDATE_EVENT = 'settings-update'
     GAME_START_EVENT = 'game-start'
 
@@ -572,7 +573,9 @@ class PlayerCheckIn:
         game class, except `players`, which is an
         iterable over `cards.game.Player` instances connected to
         players that use this web application, or `None` values
-        for empty seats.
+        for empty seats. Elements of `players` obtained through
+        this method or property should be treated as read-only
+        objects.
 
         Returns
         -------
@@ -812,6 +815,11 @@ class PlayerCheckIn:
                     player = self.createPlayer(playerNo, token)
                     assert isinstance(player, cards.game.Player)
                     self._players[playerNo] = (token, player)
+                    self.uiDispatcher.postEvent(self,
+                        event = self.PLAYER_STATUS_EVENT,
+                        index = playerNo,
+                        status = _('joined')
+                    )
                 return player
             else:
                 raise ValueError('Unknown token: "%s"' % token)
@@ -845,12 +853,13 @@ class PlayerCheckIn:
 
         return WebPlayer()
 
-    def disconnectPlayer(self, token):
+    def playerConnectionStatus(self, token, connected = False):
         """
-        Mark a remote player as disconnected.
+        Change a remote player's connection status.
         
-        Looks up a player by its token and marks that player as
-        disconnected. The player to be marked must be a `RemoteEntity`.
+        Marks a player as either connected or disconnected. The player
+        to be marked must be a `RemoteEntity`.
+        Looks up a player to be marked by its token. 
         
         Parameters
         ----------
@@ -873,7 +882,11 @@ class PlayerCheckIn:
                 raise TypeError(
                     'Unsupported player type %s at seat %d, token "%s"'
                     % (type(player).__name__, playerNo, token))
-            player.offline = True
+            player.offline = not connected
+            self.uiDispatcher.postEvent(self,
+                event = self.PLAYER_STATUS_EVENT,
+                status = _('joined') if connected else _('expected'),
+                index = playerNo);
         else:
             raise ValueError('Unknown token: "%s"' % token)       
 
@@ -1251,7 +1264,7 @@ class PlayerCheckIn:
     
         Examples
         --------
-        TODO <In the doctest format, illustrate how to use this method.>
+        TODOdoc <In the doctest format, illustrate how to use this method.>
         """
         return self._host
 
