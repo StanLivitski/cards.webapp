@@ -415,6 +415,7 @@ class PlayerCheckIn:
     PLAYER_UPDATE_EVENT = 'player-update'
     PLAYER_STATUS_EVENT = 'player-status'
     SETTINGS_UPDATE_EVENT = 'settings-update'
+    READY_STATE_EVENT = 'ready-state'
     GAME_START_EVENT = 'game-start'
 
     FACILITIES = dict()
@@ -812,17 +813,28 @@ class PlayerCheckIn:
                 playerNo = self._tokens[token]
                 player = self.fetchPlayer(playerNo)
                 if not isinstance(player, cards.game.Player):
+                    wasReady = self.ready
                     player = self.createPlayer(playerNo, token)
                     assert isinstance(player, cards.game.Player)
                     self._players[playerNo] = (token, player)
-                    self.uiDispatcher.postEvent(self,
-                        event = self.PLAYER_STATUS_EVENT,
-                        index = playerNo,
-                        status = _('joined')
-                    )
+                    self._onPlayerStatusChange(playerNo, 'joined', wasReady)
                 return player
             else:
                 raise ValueError('Unknown token: "%s"' % token)
+
+    def _onPlayerStatusChange(self, playerNo, status, wasReady):
+        self.uiDispatcher.postEvent(self,
+            event = self.PLAYER_STATUS_EVENT,
+            index = playerNo,
+            status = _(status)
+        )
+        ready = self.ready
+        if wasReady != ready:
+            self.uiDispatcher.postEvent(self,
+                event = self.READY_STATE_EVENT,
+                ready = ready
+            )
+           
 
     def createPlayer(self, playerNo, token):
         """
@@ -876,6 +888,7 @@ class PlayerCheckIn:
         """
 
         if token in self._tokens:
+            wasReady = self.ready
             playerNo = self._tokens[token]
             player = self.fetchPlayer(playerNo)
             if not isinstance(player, RemoteEntity):
@@ -883,10 +896,7 @@ class PlayerCheckIn:
                     'Unsupported player type %s at seat %d, token "%s"'
                     % (type(player).__name__, playerNo, token))
             player.offline = not connected
-            self.uiDispatcher.postEvent(self,
-                event = self.PLAYER_STATUS_EVENT,
-                status = _('joined') if connected else _('expected'),
-                index = playerNo);
+            self._onPlayerStatusChange(playerNo, 'joined' if connected else 'expected', wasReady)
         else:
             raise ValueError('Unknown token: "%s"' % token)       
 

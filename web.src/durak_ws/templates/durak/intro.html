@@ -38,28 +38,58 @@
     (function() {
     	var defaultHandler = comety.defaults.handler;
     	function handler(events, loopParams) {
-        	if ("game-start" == events[0][1].event)
+        	switch (events[0][1].event)
        		{
+       		case "game-start":
         		location.replace("{% url 'table' %}");
         		return 0;
-       		}
-        	else if ("player-status" == events[0][1].event)
-       		{
-        		var form = $(".form-player").eq(events[0][1].index);
+       		case "ready-state":
+	       		{% if playerNo == 0 %}
+	       		ready = events[0][1].ready;
+	       		$('#form-start').replaceWith(renderStartForm()); 
+	       		{% endif %}
+   				return  1;
+       		case "player-status":
+       			var playerNo = events[0][1].index;
+       			var status = events[0][1].status;
+        		var form = $(".form-player").eq(playerNo);
         		if (1 == form.length)
-        			form.find("span.text-info").last().text(events[0][1].status);
-        		else if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
-					console.error('Name form for player #' + (1 + events[0][1].index)
-						+ ' not found or ambiguous when processing event: ' + $.param(events[0][1]));
+        			form.find("span.text-info").last().text(status);
+        		else 
+        		{ 
+        			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+						console.error('Name form for player #' + (1 + playerNo)
+							+ ' not found or ambiguous when processing event: ' + $.param(events[0][1]));
+        			return defaultHandler(events, loopParams);
+        		}
+        		PLAYER_INFO[playerNo].status = status;
         		return 1;
-       		}
-        	/* if ("player-update" == events[0][1].event)
-       		{
-        		console.log(events[0]);
+       		case "player-update":
+       			var playerNo = events[0][1].index;
+       			var updates = events[0][1].now;
+       			for (var prop in updates)
+       			{
+       				if (prop in PLAYER_INFO[playerNo])
+       					PLAYER_INFO[playerNo][prop] = updates[prop];
+       				else if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+						console.error('Player property "' + prop
+								+ '" not found when processing event: ' + $.param(events[0][1]));
+       			}
+       			// 
+       			var oldPanel = $("#panel-players").children('div.panel').eq(playerNo);
+        		if (0 == oldPanel.length)
+        		{ 
+        			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+						console.error('Panel for player #' + (1 + playerNo)
+							+ ' not found when processing event: ' + $.param(events[0][1]));
+        			return defaultHandler(events, loopParams);
+        		}
+       			var newPanel = renderPlayerPanel(playerNo, PLAYER_INFO[playerNo]);
+       			oldPanel.replaceWith(newPanel);
         		return 1;
-       		} */
-        	else
+        	default:
         		return defaultHandler(events, loopParams);
+       		}
     	}
     	comety.defaults.handler = handler;
     })();
@@ -181,9 +211,10 @@
     	},
     {% endfor %}
 	];
-	var seat = {{playerNo}};
 	var CSRF_TOKEN_CONTROL = $("{% csrf_token %}", document);
 	var NAME_STUB_FORMAT = Formatter([{% trans "'Player ', '%d'" %}]);
+	var seat = {{playerNo}};
+	var changeRequest;
 
 	function getUserCount()
 	{
@@ -198,14 +229,39 @@
 		return null != player['name'] ? player.name : formatter.format(i + 1);
 	}
 
+	function playerNameChange()
+	{
+		var input = $("#input-player-name");
+		var text = input.val();
+		if (undefined != changeRequest)
+			return;
+		changeRequest = $.post("{% url 'intro-updates' %}",
+				input.parents('form').serialize());
+		changeRequest.done(function()
+		{
+			PLAYER_INFO[seat].name = text;
+			changeRequest = undefined;
+		})
+		.fail(function(jqXHR, textStatus, errorThrown)
+		{
+			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+				console.error(
+					'Name change request ' +
+					(null == textStatus ? 'failed' : textStatus) +
+					(null == errorThrown ? '' : ': ' + errorThrown)
+				);
+			changeRequest = undefined; 
+		});
+	}
+
 	function renderPlayerNameForm(i, player)
 	{
 		var form = $('<form class="form-player"/>', document);
 		if (i == seat)
 		{
 			form.attr({
-				method: "POST",
 				id: "form-name",
+				onSubmit: "return false" 
 			});
 			form.prepend(CSRF_TOKEN_CONTROL.clone());
 			if (0 == seat)
@@ -227,7 +283,10 @@
 		if (i != seat)
 			input.attr('readonly', 'readonly');
 		else
+		{
 			input.attr('id', 'input-player-name');
+			input.change(playerNameChange);
+		}
 		inputGroup.find("span.text-info").last().text(player.status);
 		form.append(inputGroup);
 		return form;
@@ -342,12 +401,7 @@
 		}		
 	})(PLAYER_INFO, $("#panel-players"));
 
-	$("#input-player-name").change(function()
-	{
-		$(this).parents('form').submit();
-		return true;
-	});
-// --></script>
+	// --></script>
 </div>
 <div class="row">
 	<div class="col-xs-12 col-md-5">

@@ -27,7 +27,7 @@ from urllib.parse import urlunsplit
 
 import django.core.urlresolvers
 from django.http.response import \
-    HttpResponseForbidden, HttpResponseRedirect, HttpResponseServerError
+    HttpResponse, HttpResponseForbidden, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 
@@ -299,8 +299,7 @@ class IntroView(ViewWithEvents):
             response = self._admitRequest(request, *args, **kwargs)
         if response is None:
             if self.updateMode:
-                # TODO: successful asynchronous response indicates that ...
-                return HttpResponseServerError('TODO: implement')
+                return HttpResponse('OK')
             else:
                 # no response delegates to _admittedGet()
                 return self._admittedGet(request)
