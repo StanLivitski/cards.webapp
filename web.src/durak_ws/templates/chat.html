@@ -37,6 +37,44 @@
 
     var seat = {{seat}};
 
+    var STORAGE_PREFIX = (function() {
+    	var path = location.pathname;
+    	while (path.endsWith('/'))
+    		path = path.slice(0,-1);
+    	path = path.slice(path.lastIndexOf('/') + 1);
+    	return path ? path : 'chat';
+    })();
+
+    var storeMessage = (function() {
+    	if (sessionStorage == null)
+    	{
+			if (typeof(console) == 'object' && console instanceof Object && 'warn' in console)
+				console.warn('Session storagee is not available.');
+    		return function() {};
+    	}
+    	return function (message)
+        {
+        	try {
+        		var sid = sessionStorage[STORAGE_PREFIX + '-counter'];
+        		if (null == sid)
+        			sid = 0;
+        		else
+        			sid = parseInt(sid);
+        		sessionStorage[STORAGE_PREFIX + '-counter'] = sid + 1;
+        		sessionStorage[STORAGE_PREFIX + '-' + sid] = JSON.stringify([
+    		    	message[0],
+    		    	{ 
+    		    		text : message[1].text,
+    		    		to : message[1].targetUsers
+    		    	}
+    		    ]);
+       		} catch(e) {
+    			if (typeof(console) == 'object' && console instanceof Object && 'warn' in console)
+    				console.warn('Could not store new message. ' + e);  			
+       		}
+        };
+    })();
+
     function wrapMessage(text)
     {
     	var article = MESSAGE_ARTICLE.clone();
@@ -48,22 +86,6 @@
     	}
     	return article;
     }
- 
-    $(function() {
-    	var dest=$("main.messages");
-    	if (window.parent !== window)
-    	{
-    		var src = $(window.parent.document).find('.messages');
-    		if (0 == src.length)
-    			$(window.parent.document).find('body').append(
-    				'<div class="cache messages"></div>'
-    			);
-    		else
-	    		dest.append(src.contents().clone(true));
-    	}
-        // TODO: if (sessionStorage != null && 0 == dest.contents().length)
-        // render `dest` from sessionStorage data, then copy it back to cache, if available
-    });
 
     var MESSAGE_BROADCAST_HEADER_FORMAT = Formatter([{% trans "'%s',' to all:'" %}]);
     var MESSAGE_OUTGOING_HEADER_FORMAT = Formatter([{% trans "'You to ','%s',':'" %}]);
@@ -92,11 +114,60 @@
 			dest.append(CLEARFIX.clone());
 		dest.append(article);
     }
+	 
+	var SENDER_NAME_STUB_FORMAT = Formatter([
+   		{% blocktrans context "message sender" %}'Player ', '%d'{% endblocktrans %}
+   	]);
+	var RECEIVER_NAME_STUB_FORMAT = Formatter([
+   		{% blocktrans context "message receiver" %}'Player ', '%d'{% endblocktrans %}
+   	]);
+    $(function() {
+    	var dest=$("main.messages");
+    	if (window.parent !== window)
+    	{
+    		var src = $(window.parent.document).find('.messages');
+    		if (0 == src.length)
+    			$(window.parent.document).find('body').append(
+    				'<div class="cache messages"></div>'
+    			);
+    		else
+	    		dest.append(src.contents().clone(true));
+    	}
+        if (sessionStorage != null && 0 == dest.contents().length)
+        {
+        	var end = sessionStorage[STORAGE_PREFIX + '-counter'];
+        	end = null == end ? 0 : parseInt(end);
+        	for (var i = 0; i < end; i++)
+        	{
+        		var message = sessionStorage[STORAGE_PREFIX + '-' + i];
+        		if (null == message)
+        			continue;
+        		message = JSON.parse(message);
+        		var to;
+    			var sender = message[0][0];
+    			var sent = seat == message[0][1];
+    			if (sent)
+    			{
+    				if (null == message[1].to)
+    					to = null;
+    				else if (null != message[1].to[0][0])
+    					to = message[1].to[0][0];
+    				else
+    					to = RECEIVER_NAME_STUB_FORMAT.format(message[1].to[0][1] + 1);
+    				sender = null;
+    			}
+    			else
+    			{
+    				to = null != message[1].to ? '' : null;
+    				if (null == sender || '' == $.trim(sender))
+     					sender = SENDER_NAME_STUB_FORMAT.format(message[0][1] + 1);
+    			}
+            	postMessage(sender, to, message[1].text, sent);        		
+        	}
+        }
+    });
 
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
-	var NAME_STUB_FORMAT = Formatter([
-		{% blocktrans context "message sender" %}'Player ', '%d'{% endblocktrans %}
-	]);
     with (comety.defaults)
     {
     	url = " {% url 'chat-messages' %}";
@@ -115,9 +186,10 @@
     			}
     			if (message[0][1] == seat)
     				continue;
+    			storeMessage(message);
     			var sender = message[0][0];
     			if (null == sender || '' == $.trim(sender))
-    				sender = NAME_STUB_FORMAT.format(message[0][1] + 1);
+    				sender = SENDER_NAME_STUB_FORMAT.format(message[0][1] + 1);
     			var receiver = null != message[1].targetUsers ? '' : null;
    				postMessage(sender, receiver, message[1].text);
     		}
@@ -155,6 +227,48 @@
     	};
     })();
     $(updateRecipients);
+
+	var messageRequest;
+	function sendMessage(event)
+	{
+		var input = $("#send-message-text");
+		var text = input.val();
+		if (undefined != messageRequest || '' == $.trim(text))
+			return;
+		var to = $("#send-message-to").val();
+		messageRequest = $.post("{% url 'chat-messages' %}",
+				$("#form-send-message").serialize());
+		messageRequest.done(function()
+		{
+			input.val('');
+			messageRequest = undefined;
+			var targetUser = to ? getUserName(parseInt(to), RECEIVER_NAME_STUB_FORMAT) : null;
+			var targetUsers;
+			if (null == targetUser)
+				targetUsers = null;
+			else
+			{ 
+				var index = parseInt(to);
+				targetUsers = [[getUserName(index, false), index]];
+			}
+			storeMessage([
+				[ getUserName(seat, false), seat ],
+				{ text : text,
+				  targetUsers : targetUsers }
+			]);
+			postMessage(null, targetUser, text, true);
+		})
+		.fail(function(jqXHR, textStatus, errorThrown)
+		{
+			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+				console.error(
+					'Message request ' +
+					(null == textStatus ? 'failed' : textStatus) +
+					(null == errorThrown ? '' : ': ' + errorThrown)
+				);
+			messageRequest = undefined; 
+		});
+	}
     // --></script>
 {% endblock head_scripts %}
 
@@ -183,34 +297,7 @@
 		</div>
 	</form>
 	<script type="text/javascript"><!--
-	var messageRequest;
-	$('#send-message-button').click(function(event)
-	{
-		var input = $("#send-message-text");
-		var text = input.val();
-		if (undefined != messageRequest || '' == $.trim(text))
-			return;
-		messageRequest = $.post("{% url 'chat-messages' %}",
-				$("#form-send-message").serialize());
-		messageRequest.done(function()
-		{
-			input.val('');
-			messageRequest = undefined;
-			var to = $("#send-message-to");
-			to = to.val() ? getUserName(parseInt(to.val()), NAME_STUB_FORMAT) : null;
-			postMessage(null, to, text, true);
-		})
-		.fail(function(jqXHR, textStatus, errorThrown)
-		{
-			if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
-				console.error(
-					'Message request ' +
-					(null == textStatus ? 'failed' : textStatus) +
-					(null == errorThrown ? '' : ': ' + errorThrown)
-				);
-			messageRequest = undefined; 
-		});
-	});
+	$('#send-message-button').click(sendMessage);
 	// --></script>
 </body>
 {% endblock %}

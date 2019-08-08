@@ -229,7 +229,8 @@
 		var player = PLAYER_INFO[i];
 		if (null == formatter)
 			formatter = NAME_STUB_FORMAT;
-		return null != player['name'] ? player.name : formatter.format(i + 1);
+		return null != player['name'] ? player.name
+			: 'object' == typeof formatter && 'format' in formatter ? formatter.format(i + 1) : null;
 	}
 
 	function playerNameChange()

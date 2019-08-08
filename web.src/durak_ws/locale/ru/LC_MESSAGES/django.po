@@ -110,9 +110,15 @@ msgstr "'Игрок ','%%s',' - вам:'"
 msgid "You to all:"
 msgstr "Вы - всем:"
 
-#: templates/chat.html:98
+#: templates/chat.html:118
 #, python-format
 msgctxt "message sender"
+msgid "'Player ', '%%d'"
+msgstr "'%%d'"
+
+#: templates/chat.html:122
+#, python-format
+msgctxt "message receiver"
 msgid "'Player ', '%%d'"
 msgstr "'%%d'"
 
