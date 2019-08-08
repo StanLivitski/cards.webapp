@@ -125,9 +125,9 @@
     	}
     }
 
-    var getUserCount = getUserCount in window.parent ? window.parent.getUserCount
+    var getUserCount = 'getUserCount' in window.parent ? window.parent.getUserCount
     	: function() { return 0; };
-    var getUserName = getUserName in window.parent ? window.parent.getUserName
+    var getUserName = 'getUserName' in window.parent ? window.parent.getUserName
     	: function(i, f) { return null; };
     function updateRecipients()
     {
@@ -143,8 +143,18 @@
     		target.append(option);
     	}
     }
+    (function () {
+    	if (!'onUserInfoChange' in window.parent)
+    		return;
+    	var oldUserInfoChange = window.parent.onUserInfoChange;
+    	window.parent.onUserInfoChange = function ()
+    	{
+    		updateRecipients();
+			if (null != oldUserInfoChange)
+				oldUserInfoChange();
+    	};
+    })();
     $(updateRecipients);
-    // TODO: event handler to receive player info updates from parent window
     // --></script>
 {% endblock head_scripts %}
 

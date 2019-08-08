@@ -63,6 +63,8 @@
         			return defaultHandler(events, loopParams);
         		}
         		PLAYER_INFO[playerNo].status = status;
+    			if (null != onUserInfoChange)
+    				onUserInfoChange();
         		return 1;
        		case "player-update":
        			var playerNo = events[0][1].index;
@@ -74,8 +76,7 @@
        				else if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
 						console.error('Player property "' + prop
 								+ '" not found when processing event: ' + $.param(events[0][1]));
-       			}
-       			// 
+       			} 
        			var oldPanel = $("#panel-players").children('div.panel').eq(playerNo);
         		if (0 == oldPanel.length)
         		{ 
@@ -86,6 +87,8 @@
         		}
        			var newPanel = renderPlayerPanel(playerNo, PLAYER_INFO[playerNo]);
        			oldPanel.replaceWith(newPanel);
+    			if (null != onUserInfoChange)
+    				onUserInfoChange();
         		return 1;
         	default:
         		return defaultHandler(events, loopParams);
@@ -214,7 +217,7 @@
 	var CSRF_TOKEN_CONTROL = $("{% csrf_token %}", document);
 	var NAME_STUB_FORMAT = Formatter([{% trans "'Player ', '%d'" %}]);
 	var seat = {{playerNo}};
-	var changeRequest;
+	var changeRequest, onUserInfoChange;
 
 	function getUserCount()
 	{
@@ -241,6 +244,8 @@
 		{
 			PLAYER_INFO[seat].name = text;
 			changeRequest = undefined;
+			if (null != onUserInfoChange)
+				onUserInfoChange();
 		})
 		.fail(function(jqXHR, textStatus, errorThrown)
 		{
