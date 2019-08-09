@@ -406,23 +406,23 @@
 			container.append(panel);
 		}		
 	})(PLAYER_INFO, $("#panel-players"));
-
 	// --></script>
 </div>
 <div class="row">
-	<div class="col-xs-12 col-md-5">
+	<div class="col-xs-12{% if playerNo == 0 %} col-md-5{% endif %}">
 		<div class="panel panel-default tab-content">
-			<ul class="panel-heading nav nav-tabs hidden-md hidden-lg" style="padding: 0">
-			  <li role="presentation" class="active"><a href="#tab-settings"
+			<ul class="panel-heading nav nav-tabs
+			{% if playerNo == 0 %}hidden-md hidden-lg{% endif %}" style="padding: 0">
+			  {% if playerNo == 0 %}<li role="presentation"><a href="#tab-settings"
 			   aria-controls="tab-settings" role="tab"
-			   data-toggle="tab">{% trans "Settings" %}</a></li>
-			  <li role="presentation"><a href="#tab-messages"
+			   data-toggle="tab">{% trans "Settings" %}</a></li>{% endif %}
+			  <li role="presentation" class="active"><a href="#tab-messages"
 			   aria-controls="tab-messages" role="tab"
 			   data-toggle="tab">{% trans "Messages" %}</a></li>
 			</ul>
-			<div class="panel-heading visible-md visible-lg">{% trans "Settings" %}</div>
-			<div id="tab-settings" role="tabpanel" class="tab-pane active panel-body">
 			{% if playerNo == 0 %}
+			<div class="panel-heading visible-md visible-lg">{% trans "Settings" %}</div>
+			<div id="tab-settings" role="tabpanel" class="tab-pane panel-body">
 				<form class="form-horizontal" method="POST" id="form-settings">
 					{% csrf_token %}
 					<div class="form-group">
@@ -613,13 +613,14 @@
 					 	return true;
 					}
 				//--></script>
-			{% endif %}
 			</div>
+			{% endif %}
 			<div id="tab-messages" role="tabpanel"
-			 class="tab-pane panel-body embed-responsive chat-container"></div>
+			 class="tab-pane active panel-body embed-responsive chat-container"></div>
 		</div>
 	</div>
-	<div class="col-md-7 visible-md visible-lg">
+	<div class="{% if playerNo == 0 %}col-md-7 visible-md visible-lg
+			{% else %}hidden-sm hidden-md hidden-lg{% endif %}">
 		<div class="panel panel-default">
 			<div class="panel-heading visible-md visible-lg">{% trans "Messages" %}</div>
 			<div id="panel-body-messages" class="panel-body embed-responsive chat-container">
