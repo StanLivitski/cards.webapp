@@ -256,7 +256,7 @@ def make_svg(count, offset, target, verbose, quiet, force):
             if 0 < verbose:
                 log.error('', exc_info = error)
             else:
-                log.error('%s: %s', type(error[0]).__name__, error[1])
+                log.error('%s: %s', error[0].__name__, error[1])
             sys.exit(3)
     finally:
         if out is None:

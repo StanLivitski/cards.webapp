@@ -151,7 +151,7 @@ convert images from the upstream projects. You can run them again to import
 any updates to the upstream images.
 
 To have the application display card images installed elsewhere on a
-hosting system, run the ``link_card_images.py`` script from ``misc/scripts/``.
+hosting machine, run the ``link_card_images.py`` script from ``misc/scripts/``.
 Note that this script has additional dependencies which are listed in its
 docstring. When running the script, specify either ``front/`` or
 ``back/`` subdirectory of ``web.src/durak_ws/static/cards/images`` in the

@@ -315,7 +315,7 @@ def make_links(imgtype, source, target, verbose, prefix):
             if 1 < verbose:
                 log.error('', exc_info = error)
             else:
-                log.error('%s: %s', type(error[0]).__name__, error[1])
+                log.error('%s: %s', error[0].__name__, error[1])
             sys.exit(3)
 
 if __name__ == '__main__':
