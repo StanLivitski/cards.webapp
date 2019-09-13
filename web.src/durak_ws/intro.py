@@ -25,7 +25,7 @@ import socket
 import sys
 from urllib.parse import urlunsplit
 
-import django.core.urlresolvers
+import django.urls
 from django.http.response import \
     HttpResponse, HttpResponseForbidden, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
@@ -220,7 +220,7 @@ class IntroView(ViewWithEvents):
         checkIn = None if gameId is None else PlayerCheckIn.FACILITIES.get(gameId)
         try:
             checkIn.close()
-            target = django.core.urlresolvers.reverse('table')
+            target = django.urls.reverse('table')
         except:
             error = sys.exc_info()[1]
             request.session[IntroView.ERROR_IN_SESSION] = \
@@ -439,14 +439,12 @@ class IntroView(ViewWithEvents):
                 target = None
                 if checkIn.game is not None:
                     # if the game is on, send re-joining player to the table
-                    target = django.core.urlresolvers.reverse('table')
+                    target = django.urls.reverse('table')
                 elif args:
-                    suffix = django.core.urlresolvers.reverse(
-                        'intro', args = args
-                    )
+                    suffix = django.urls.reverse('intro', args = args)
                     if request.path.endswith(suffix):
                         target = request.path[0:-len(suffix)]
-                        target += django.core.urlresolvers.reverse('intro')
+                        target += django.urls.reverse('intro')
                 self.trackHeartbeat(request)
                 return None if target is None else HttpResponseRedirect(target)
             else:

@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
+{% comment %}
 <!-- ====================================================================== 
      Template dimmer image for a card.
      Copyright 2017 Stan Livitski
@@ -21,6 +22,7 @@
      See the License for the specific language governing permissions and
      limitations under the License.
      ====================================================================== -->
+{% endcomment %}
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:svg="http://www.w3.org/2000/svg" version="1.2" baseProfile="tiny" viewBox="0 0 225 318" width="225px" height="318px">
     <path style="{{ style }}"
     d="M0,10C0.3,4.5,4.5,0.3,9.6,0.3h204c4.5,0.3,9,4.5,9.4,9v298c-0.3,4.5,-4.5,9,-9.4,9H10c-4.5,-0.3,-9.4,-4.5,-9.6,-9z"/>

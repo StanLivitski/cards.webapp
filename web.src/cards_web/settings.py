@@ -106,7 +106,7 @@ INSTALLED_APPS = (
 # End monkey patch of django.contrib.staticfiles
 
 # TODO: clean this up
-MIDDLEWARE_CLASSES = (
+MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',

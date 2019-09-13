@@ -232,8 +232,8 @@ class BackLinkMaker(LinkMaker):
 @click.option('-b', '--back', 'imgtype', flag_value='back',
               help='Make links to images of card backs.')
 @click.option('--prefix', 'prefix', default='back_',
-              help='Prefix used with names of card backs\'\
- image files.')
+              help='Prefix used with names of card backs`'
+                ' image files.')
 @click.argument('source', required=False,
                 type=click.Path(
                  exists=True,
