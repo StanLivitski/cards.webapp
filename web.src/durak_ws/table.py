@@ -23,14 +23,14 @@
 import json
 import logging
 
-import django.core.urlresolvers
+import django.urls
 from django.http.response import \
     HttpResponseForbidden, HttpResponseRedirect, HttpResponseServerError,\
     HttpResponseNotFound, HttpResponse
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
-from django.utils.cache import patch_response_headers   
+from django.utils.cache import patch_response_headers
 
 from comety.django.views import ViewWithEvents
 
@@ -46,6 +46,7 @@ def dimmer_view(request, style):
             )
     patch_response_headers(response)
     return response
+
 
 class TableView(ViewWithEvents):
     """
@@ -71,7 +72,7 @@ class TableView(ViewWithEvents):
     def post(self, request, *args, **kwargs):
         if not self._isRequestAdmitted(request):
             return HttpResponseRedirect(
-                django.core.urlresolvers.reverse('intro')
+                django.urls.reverse('intro')
             )
         elif self.updateMode:
             return HttpResponse('OK') if self._admittedPost(request) \
@@ -84,7 +85,7 @@ class TableView(ViewWithEvents):
         if not self._isRequestAdmitted(request):
             return (HttpResponseForbidden() if self.updateMode
                 else HttpResponseRedirect(
-                    django.core.urlresolvers.reverse('intro')
+                    django.urls.reverse('intro')
                 ))
         elif self.updateMode:
             return super().get(request, *args, **kwargs)
