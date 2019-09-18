@@ -143,17 +143,17 @@ card faces displayed by the application by saving alternative or
 modified images in the ``cards.webapp`` directories of ``svg-card-backs``
 and ``responsive-playing-cards`` subprojects (under ``downloads/``).
 Note that replacement images must satisfy requirements
-listed in the comments of XSL Transformation (``.xslt``) files within
-those directories.
+listed in the comments of XSL Transformation (``.xslt``) or
+Python script (``.py``) files within those directories.
 
-XSL Transformations in the subprojects containing card images were used to
-convert images from the upstream projects. You can run them again to import
-any updates to the upstream images.
+Python scripts and XSL Transformations in the subprojects containing card
+images were used to convert images from the upstream projects. You can run
+them again to import any updates to the upstream images.
 
 To have the application display card images installed elsewhere on a
 hosting machine, run the ``link_card_images.py`` script from ``misc/scripts/``.
 Note that this script has additional dependencies which are listed in its
-docstring. When running the script, specify either ``front/`` or
-``back/`` subdirectory of ``web.src/durak_ws/static/cards/images`` in the
-project's sources as the target and the permanent location of your images
-as the source.
+docstring. When running the script, specify either
+``web.src/durak_ws/static/cards/images/front/`` or
+``web.src/depends/backs/`` directory in the project's sources as the target
+and the permanent location of your images as the source.

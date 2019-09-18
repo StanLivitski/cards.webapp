@@ -29,18 +29,28 @@
 {% if index in opponents %}{% with opponent=opponents|get:index %}
 			<div id="opponent-{{index}}-hand" class="scaler" data-sc-height="CH"
 				style="position: relative; width: 100%; height: 80%;">
-				<object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 00%"> </object><!--
-				--><object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 10%"> </object><!-- 
-				--><object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 20%"> </object><!-- 
-				--><object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 30%"> </object><!-- 
-				--><object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 40%;"> </object><!-- 
-				--><object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
-					height="100%" style="position: absolute; left: 50%;"> </object>
+				{% if opponent.hand|length > 0 %}
+				<script type="text/javascript"><!--
+				(function() {
+					var fraction = {{ opponent.hand|length|add:"-1" }};
+					for (var i = 0; i < fraction; i++)
+					{
+						document.write(
+							'<object type="image/svg+xml" height="100%" data="'
+							+ "{% url 'card_back' image=backImage %}?fraction="
+							+ fraction + '" style="position: absolute; left: '
+							+ (50 / fraction * i) + '%"> </object>'
+						);
+					}
+					document.write(
+						'<object type="image/svg+xml" height="100%" data="'
+						+ "{% url 'card_back' image=backImage %}"
+						+ '" style="position: absolute; left: '
+						+ (fraction > 0 ? 50 : 25) + '%"> </object>'
+					);
+				})();
+				// --></script>
+				{% endif %}
 			</div>
 			<div id="opponent-{{index}}-name"
 				style="position: relative; width: 100%;

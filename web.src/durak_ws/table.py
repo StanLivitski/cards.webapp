@@ -30,23 +30,11 @@ from django.http.response import \
 from django.shortcuts import render
 from django.utils.translation import ugettext_lazy as _
 from django.utils.translation import ugettext
-from django.utils.cache import patch_response_headers
 
 from comety.django.views import ViewWithEvents
 
 from .models import PlayerCheckIn
 from .intro import IntroView
-
-def dimmer_view(request, style):
-    response = render(
-                request,
-                'durak/table/dimmer.svg',
-                {'style':style},
-                content_type='image/svg+xml'
-            )
-    patch_response_headers(response)
-    return response
-
 
 class TableView(ViewWithEvents):
     """
@@ -188,6 +176,7 @@ class TableView(ViewWithEvents):
             opponents = checkIn.opponentMap(position, self.SEATING_CAPACITY)
             contextVars = {
                 'bodyClass' : "table-background",
+                'backImage' : '01',
                 'game' : checkIn.game,
                 'gameApp' : 'durak',
                 'layoutTemplate' : 'durak/table/%s.html' % layout,

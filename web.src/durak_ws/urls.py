@@ -37,9 +37,10 @@ Including another URLconf
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
 from django.conf.urls import url
-from . import intro, chat, table
+from . import intro, chat, graphics, table
 
-_STYLE_RE = r'[^">]*'
+PARAM_STYLE_PATTERN = r'[^">]*'
+PARAM_BACK_IMAGE_PATTERN = r'\w{1,16}'
 
 urlpatterns = [
     url(r'^$', intro.IntroView.as_view(), name='intro'),
@@ -50,7 +51,9 @@ urlpatterns = [
     url('^messages$', chat.ChatView.as_view(updateMode=True), name='chat-messages'),
     #url(r'^comety/events.js$', TemplateView.as_view(template_name='comety/events.js'), name='test'),
     url(r'^table$', table.TableView.as_view(), name='table'),
-    url(r'^table/dimmer/(?P<style>%s)$' % _STYLE_RE,
-        table.dimmer_view, name='dimmer'),
+    url(r'^table/dimmer/(?P<style>%s)$' % PARAM_STYLE_PATTERN,
+        graphics.dimmer_view, name='dimmer'),
+    url(r'^table/back/(?P<image>%s)$' % PARAM_BACK_IMAGE_PATTERN,
+        graphics.CardBackView.as_view(), name='card_back'),
     url(r'^game$', table.TableView.as_view(updateMode=True), name='table-updates'),
 ]

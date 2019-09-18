@@ -36,7 +36,7 @@
 				<object id="stock-side" type="image/svg+xml" data="{% static 'durak/mockups/stock-side.svg' %}"
 					height="100%">
 				</object>
-				<object type="image/svg+xml" data="{% static 'cards/images/back/01.svg' %}"
+				<object type="image/svg+xml" data="{% url 'card_back' image=backImage %}"
 					style="position: relative; left: -5%; /* 10 scaled pixels */" height="100%"></object>
 			</div>
 		</div>
