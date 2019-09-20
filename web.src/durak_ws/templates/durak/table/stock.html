@@ -25,18 +25,23 @@
 {% load static %}
 		<div style="position: relative; height: 66.67%;"
 			id="stock" class="scaler" data-sc-height="CH">
+			{% if game.stockCount > 0 %}
 			<object type="image/svg+xml"
 			 data="{% static 'cards/images/front/'|add:game.trumpCard.code|add:'.svg' %}"
 			 style="margin: 0 auto; display: block;" height="100%">
 			</object>
+			{% if game.stockCount > 1 %}
 			<div style="-webkit-transform: rotate(-90deg); -ms-transform: rotate(-90deg);
 						transform: rotate(-90deg); position: absolute; width: 100%; 
 						top: 20.71%; bottom: -20.71%;">
 						{# modulus = sqrt(2)/2 - 1/2 in both cases #}
-				<object id="stock-side" type="image/svg+xml" data="{% static 'durak/mockups/stock-side.svg' %}"
-					height="100%">
+				<object id="stock-side" type="image/svg+xml" height="100%"
+					data="{% url 'stock_side' gap=1.25 %}?count={{ game.stockCount|add:'-2' }}"
+					>
 				</object>
 				<object type="image/svg+xml" data="{% url 'card_back' image=backImage %}"
 					style="position: relative; left: -5%; /* 10 scaled pixels */" height="100%"></object>
 			</div>
+			{% endif %}
+			{% endif %}
 		</div>

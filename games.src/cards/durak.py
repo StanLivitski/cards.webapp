@@ -111,6 +111,9 @@ class Game(cards.game.Game):
         An object that generates decks for this game.
     trumpCard : cards.CardFace
         The card at the bottom of stock that shows the trump suit.
+    stockCount: int
+        The number of cards remaining in stock, including the trump
+        card.
     fools : collections.Sequence
         A sequence that accumulates loss counts by players in prior
         games.
@@ -557,6 +560,25 @@ TODOdoc:
         if self._cardsOnTable is None:
             raise RuntimeError("The game hasn't been started yet")
         return len(self._cardsOnTable)
+
+    @property
+    def stockCount(self):
+        """
+        Read-only property with the number of cards remaining in stock,
+        including the trump card.
+
+
+        Returns
+        -------
+        int
+            The number of cards remaining.
+    
+        Raises
+        ------
+        AttributeError
+            If this game has been started yet.
+        """
+        return len(self._stock)
 
     def nextPlayersIndex(self, index, reverse = False):
         """

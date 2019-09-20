@@ -29,6 +29,7 @@ import re
 import sys
 import xml.sax
 from xml.sax.saxutils import XMLGenerator
+from xml.sax.xmlreader import AttributesNSImpl
 
 from django.conf import settings
 from django.http.response import HttpResponse, HttpResponseNotFound, \
@@ -38,6 +39,7 @@ from django.utils.cache import patch_response_headers
 from django.utils.http import urlencode   
 from django.views.generic import View
 from xml.sax._exceptions import SAXParseException
+from builtins import setattr
 
 """
     Renderers of the game pages' dynamic elements.
@@ -83,11 +85,22 @@ def dimmer_view(request, style):
     patch_response_headers(response)
     return response
 
-class CardBackView(View):
+class SVGView(View):
+
+    http_method_names = [ 'get' ]
+
+    SVG_NAMESPACE = "http://www.w3.org/2000/svg"
+    SVG_ELEMENT = SVG_NAMESPACE, 'svg'
+    XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
+    XLINK_HREF_ATTR = XLINK_NAMESPACE, 'href'
+
+    ATTRS_SVG_DIMENSION = 'width', 'height'
+
+class StockSideView(SVGView):
     """
-    Render a card back image or a slice thereof.
+    Render an SVG image of a stock's side.
     
-    <Extended description>
+    TODOdoc? <Extended description>
     
 [    Parameters
     --------------------
@@ -115,21 +128,177 @@ class CardBackView(View):
      ... ]
     """
 
+    def get(self, request, gap):
+        '''
+        Process a request, taking the count of cards as a parameter.
+        '''
+        log = logging.getLogger(type(self).__module__)
+        count = request.GET.get('count', 22)           
+        try:
+            count = int(count)
+            if not (0 <= count < 250):
+                raise ValueError('Count is out of range (0, 250): %d' % count)
+            buffer = io.StringIO()
+            StockSideGenerator(buffer, count, float(gap) if gap else 1).run()
+            return HttpResponse(buffer.getvalue(),
+                            content_type='image/svg+xml')
+        except:
+            log.error('Error painting stacked edges of "%s" cards with gap "%s"',
+                      count, gap, exc_info=True)
+            return HttpResponseServerError()
+
+class StockSideGenerator:
+
+    for name, value in vars(SVGView).items():
+        if not name.startswith('_') and name.upper() == name:
+            exec(name + ' = ' + repr(value))
+
+    fillColor = '#fefefe'
+    strokeColor = '#000000'
+    strokeWidth = 0.5
+    marginWidth = 10
+    canvasHeight = 318
+    edgeShape = "M0.25,10C0.5,4.5,4.5,0.5,10,0.25h.25V317.75H10c-4.5,-0.5,-9.75,-4.5,-10,-10z"
+
+    SVG_VERSION = '1.1'
+    XLINK_PREFIX = "xlink"
+    X_ATTR = (SVGView.SVG_NAMESPACE, 'x')
+    EDGE_PATH_ID = 'edge'
+
+    def __init__(self, out, count, offset = .75):
+        self.out = out
+        self.count = count
+        self.offset = offset + self.strokeWidth
+        if self.offset * 2 > self.marginWidth:
+            raise ValueError(
+                'Offsets larger than %g are not supported, got %g'
+                % (self.marginWidth / 2. - self.strokeWidth, offset)
+            )
+
+    def run(self):
+        xml = XMLGenerator(self.out, 'UTF-8', True)
+        xml.startDocument()
+        xml.startPrefixMapping('', self.SVG_NAMESPACE)
+        xml.startPrefixMapping(self.XLINK_PREFIX, self.XLINK_NAMESPACE)
+        canvasWidth = int(self.marginWidth + (self.count - 1) * self.offset)
+        attrs = self._defaultNSAttrs({
+            self._svgName('version') : self.SVG_VERSION,
+            self._svgName('width') : str(canvasWidth),
+            self._svgName('height') : str(self.canvasHeight),
+            self._svgName('viewBox') : (
+                '%d %d %d %g' % (0,0,canvasWidth,self.canvasHeight)
+            )
+        })
+        xml.startElementNS(self.SVG_ELEMENT, None, attrs)
+        self._defs(xml)
+        self._contentGroup(xml)
+        xml.ignorableWhitespace('\n')
+        xml.endElementNS(self.SVG_ELEMENT, None)
+        xml.endPrefixMapping('')
+        xml.endPrefixMapping(self.XLINK_PREFIX)
+        xml.endDocument()
+
+    def _edgePathRef(self, xml, offset):
+        element = self._svgName('use')
+        xml.ignorableWhitespace('\n  ')
+        attrs = AttributesNSImpl(
+            {
+             self.XLINK_HREF_ATTR : '#' + self.EDGE_PATH_ID,
+             self.X_ATTR : str(offset)
+            },
+            {
+             self.XLINK_HREF_ATTR :
+              self.XLINK_PREFIX + ':' + self.XLINK_HREF_ATTR[1],
+             self.X_ATTR : self.X_ATTR[1]
+            }
+        )
+        xml.startElementNS(element, None, attrs)
+        xml.endElementNS(element, None)
+
+    def _contentGroup(self, xml):
+        element = self._svgName('g')
+        xml.ignorableWhitespace('\n ')
+        attrs = self._defaultNSAttrs({
+            self._svgName('style') : (
+                'fill:%s;stroke:%s;stroke-width:%g'
+                % (self.fillColor, self.strokeColor, self.strokeWidth)
+            ),
+        })
+        xml.startElementNS(element, None, attrs)
+        for i in range(0, self.count):
+            self._edgePathRef(xml, i * self.offset)
+        xml.ignorableWhitespace('\n ')
+        xml.endElementNS(element, None)
+
+    def _edgePath(self, xml):
+        element = self._svgName('path')
+        xml.ignorableWhitespace('\n  ')
+        attrs = self._defaultNSAttrs({
+            self._svgName('id') : self.EDGE_PATH_ID,
+            self._svgName('d') : self.edgeShape
+        })
+        xml.startElementNS(element, None, attrs)
+        xml.endElementNS(element, None)
+
+    def _defs(self, xml):
+        element = self._svgName('defs')
+        xml.ignorableWhitespace('\n ')
+        xml.startElementNS(element, None,
+                           AttributesNSImpl({}, {}))
+        self._edgePath(xml)
+        xml.ignorableWhitespace('\n ')
+        xml.endElementNS(element, None)
+
+    @classmethod
+    def _svgName(cls, name):
+        return (cls.SVG_NAMESPACE, name)
+
+    @staticmethod
+    def _defaultNSAttrs(attrs):
+        qnames = { name : name[1] for name in attrs.keys() }
+        return AttributesNSImpl(attrs, qnames)
+
+    def _style(self, xml):
+        element = self._svgName('style')
+        xml.ignorableWhitespace('\n ')
+        xml.startElementNS(element, None,
+                           AttributesNSImpl({}, {}))
+        xml.endElementNS(element, None)
+
+class CardBackView(SVGView):
+    """
+    Render a card back image or a slice thereof.
+    
+
+    Methods
+    ---------------
+    get(django.http.HttpRequest, str)
+        Process a GET request, taking the image name as a parameter.
+
+    See Also
+    --------------
+    ClipFinder : TODOdoc <Description of code referred by this line
+    and how it is related to the documented code.>
+    ClipExtractor : TODOdoc <Description of code referred by this line
+    and how it is related to the documented code.>
+    """
+
     IMAGES_DIR = os.path.join(settings.DEPENDENCIES_DIR, 'backs')
     PATTERN_FILE_NAME = '%s.svg'
 
     PATTERN_COORDINATE_DELIMITER = re.compile(r'\s*,\s*|\s+')
 
-    http_method_names = [ 'get' ]
-
-    SVG_NAMESPACE = "http://www.w3.org/2000/svg"
-    SVG_ELEMENT = SVG_NAMESPACE, 'svg'
-    XLINK_NAMESPACE = "http://www.w3.org/1999/xlink"
-    XLINK_HREF_ATTR = XLINK_NAMESPACE, 'href'
-
-    ATTRS_SVG_DIMENSION = 'width', 'height'
-
     def get(self, request, image):
+        '''
+        Process a request, taking the image name as a parameter.
+    
+        The image file name, without extension, is received as 
+        a URLconf parameter. The other optional parameters are
+        obtained from the request. These include ``id`` and
+        ``fraction``. If ``id`` is supplied, the request is
+        processed in the extraction mode, otherwise it runs
+        in the id lookup mode.
+        '''
         log = logging.getLogger(type(self).__module__)
         file = os.path.join(self.IMAGES_DIR,
                             self.PATTERN_FILE_NAME % image)
@@ -542,7 +711,7 @@ class ClipExtractor(ContentHandler):
             self._sink.startElementNS(
                 outerSvg[:2],
                 outerSvg[2], 
-                xml.sax.xmlreader.AttributesNSImpl(attrMap, qnames)
+                AttributesNSImpl(attrMap, qnames)
             )
             self._sink.ignorableWhitespace('\n')
             self._outerSvgRendered = True
@@ -553,7 +722,7 @@ class ClipExtractor(ContentHandler):
                 qnames.pop((None, attr), None)
                 attrMap.pop((None, attr), None)
             self._sink.startElementNS((ns, name), qname, 
-                xml.sax.xmlreader.AttributesNSImpl(attrMap, qnames))
+                AttributesNSImpl(attrMap, qnames))
             self._sink.endElementNS((ns, name), qname)
             self._sink.ignorableWhitespace('\n')            
         return False

@@ -41,6 +41,7 @@ from . import intro, chat, graphics, table
 
 PARAM_STYLE_PATTERN = r'[^">]*'
 PARAM_BACK_IMAGE_PATTERN = r'\w{1,16}'
+PARAM_GAP_PATTERN = r'\d*(?:.\d+)?'
 
 urlpatterns = [
     url(r'^$', intro.IntroView.as_view(), name='intro'),
@@ -55,5 +56,7 @@ urlpatterns = [
         graphics.dimmer_view, name='dimmer'),
     url(r'^table/back/(?P<image>%s)$' % PARAM_BACK_IMAGE_PATTERN,
         graphics.CardBackView.as_view(), name='card_back'),
+    url(r'^table/stock/side/(?P<gap>%s)$' % PARAM_GAP_PATTERN,
+        graphics.StockSideView.as_view(), name='stock_side'),
     url(r'^game$', table.TableView.as_view(updateMode=True), name='table-updates'),
 ]
