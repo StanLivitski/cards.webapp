@@ -46,7 +46,8 @@
        		case "ready-state":
 	       		{% if playerNo == 0 %}
 	       		ready = events[0][1].ready;
-	       		$('#form-start').replaceWith(renderStartForm()); 
+	       		$('#form-start').replaceWith(renderStartForm());
+	       		initForms('#form-start');
 	       		{% endif %}
    				return  1;
        		case "player-status":
@@ -87,6 +88,7 @@
         		}
        			var newPanel = renderPlayerPanel(playerNo, PLAYER_INFO[playerNo]);
        			oldPanel.replaceWith(newPanel);
+       			initForms(newPanel);
     			if (null != onUserInfoChange)
     				onUserInfoChange();
         		return 1;
@@ -98,15 +100,22 @@
     })();
 
     {% comment %}TODO: make me reusable
-    {% endcomment %}function initForms() {
+    NOTE: scripts should call `initForms()` in scoped mode whenever
+	they re-create respective forms
+    {% endcomment %}function initForms(scope) {
     	var global = this;
     	var events = {
     		"submit" : null,{% comment %}
 			"reset" : null,	// HTML 5 only
 			{% endcomment %}
     	};
+    	if (null == scope)
+    		scope = $(document);
+    	else if (!(scope instanceof $))
+    		scope = $(scope);
     	var FORM_ID_PREFIX = "form-";
-    	$('form').each(function() {
+    	forms = scope.find('form').add(scope.filter('form'));
+    	forms.each(function() {
     		if (FORM_ID_PREFIX != this.id.slice(0, FORM_ID_PREFIX.length))
     			return;
     		var prefix = this.id.replace("-","_") + "_";
@@ -136,7 +145,6 @@
 	}
 
     $(function() {
-    	initForms();
 		$(window).resize(roamMessagesFrame);
 		$('a[data-toggle="tab"][href="#tab-messages"]').on('shown.bs.tab', roamMessagesFrame);
 		roamMessagesFrame();
@@ -404,7 +412,8 @@
 		{
 			var panel = renderPlayerPanel(i, playerInfo[i]);
 			container.append(panel);
-		}		
+		}
+		initForms();
 	})(PLAYER_INFO, $("#panel-players"));
 	// --></script>
 </div>
