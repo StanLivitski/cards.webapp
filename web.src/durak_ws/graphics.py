@@ -32,14 +32,15 @@ from xml.sax.saxutils import XMLGenerator
 from xml.sax.xmlreader import AttributesNSImpl
 
 from django.conf import settings
-from django.http.response import HttpResponse, HttpResponseNotFound, \
-    HttpResponseServerError, HttpResponsePermanentRedirect # , StreamingHttpResponse
+from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, \
+    HttpResponseServerError, HttpResponseRedirect
+    # HttpResponsePermanentRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.cache import patch_response_headers
 from django.utils.http import urlencode   
+from django.views.decorators.cache import cache_page
 from django.views.generic import View
 from xml.sax._exceptions import SAXParseException
-from builtins import setattr
 
 """
     Renderers of the game pages' dynamic elements.
@@ -75,15 +76,15 @@ from builtins import setattr
      ]
 """
 
-def dimmer_view(request, style):
-    response = render(
-                request,
-                'durak/table/dimmer.svg',
-                {'style':style},
-                content_type='image/svg+xml'
-            )
-    patch_response_headers(response)
-    return response
+def disable_session(view):
+    def wrapper(*args, **kwargs):
+        nonlocal view
+        request = args[0] if isinstance(args[0], HttpRequest) else args[1] 
+        # Don't use session and omit it from the "Vary:" header (hack)
+        if hasattr(request, 'session'):
+            del request.session
+        return view(*args, **kwargs)
+    return wrapper
 
 class SVGView(View):
 
@@ -95,6 +96,26 @@ class SVGView(View):
     XLINK_HREF_ATTR = XLINK_NAMESPACE, 'href'
 
     ATTRS_SVG_DIMENSION = 'width', 'height'
+
+    AGE_GRAPHICS_CACHE = 24 * 60 * 60 # 1 day in minutes
+
+    @classmethod
+    def as_view(cls, **initkwargs):
+        return disable_session(cache_page(cls.AGE_GRAPHICS_CACHE)(
+                super().as_view(**initkwargs)))
+
+
+# TODO: convert to a class-based view derived from `SVGView` and remove the template
+@disable_session
+@cache_page(SVGView.AGE_GRAPHICS_CACHE)
+def dimmer_view(request, style):
+    response = render(
+                request,
+                'durak/table/dimmer.svg',
+                {'style':style},
+                content_type='image/svg+xml'
+            )
+    return response
 
 class StockSideView(SVGView):
     """
@@ -347,8 +368,12 @@ class CardBackView(SVGView):
                         if finder.done:
                             break
                     if finder.targetId:
-                        return HttpResponsePermanentRedirect(
+                        response = HttpResponseRedirect(
                             '?' + urlencode({'id': finder.targetId}))
+                        # Cache decorator only applies to 200, 304 responses,
+                        # so request client caching here
+                        patch_response_headers(response, self.AGE_GRAPHICS_CACHE)
+                        return response
                     else:
                         raise ValueError(
                            'Could not find image clip with supplied parameters'
