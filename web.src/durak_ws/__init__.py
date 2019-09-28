@@ -26,10 +26,24 @@ front-ends.
 
 This module contains the application-wide configuration. 
 """
+import importlib
+import logging
+import os.path
 
 from django.apps.registry import apps
 from django.apps.config import AppConfig
-import os.path
+from django.utils.cache import patch_response_headers
+
+def cache_streaming_page(max_age):
+    def wrap(view):
+        nonlocal max_age
+        def wrapper(*args, **kwargs):
+            nonlocal view, max_age
+            response = view(*args, **kwargs)
+            patch_response_headers(response, max_age) 
+            return response
+        return wrapper
+    return wrap
 
 class Application(AppConfig):
     """
@@ -78,7 +92,8 @@ class Application(AppConfig):
         """
         Initialize this application.
         
-        Registers the application's signals.
+        Registers the application's signals and configures the 
+        ``staticfiles`` app to enable client-side caching.
         
     [    Raises
         ------
@@ -90,9 +105,23 @@ class Application(AppConfig):
     [    See Also
         --------    
         <python_name> : <Description of code referred by this line
-        and how it is related to the documented code.>
+        and how it is related to the documented c#ode.>
          ... ]
         """
         
         super().ready()
-        from . import signals
+        from . import signals, graphics
+        static_app = None
+        try:
+            static_app = apps.get_app_config('staticfiles')
+            static_views = importlib.import_module('.views',
+                                     static_app.module.__name__)
+            if static_views.serve is not graphics.disable_session:
+                static_views.serve = graphics.disable_session(
+                    cache_streaming_page(graphics.SVGView.AGE_GRAPHICS_CACHE)
+                    (static_views.serve))
+        except:
+            log = logging.getLogger(type(self).__module__)
+            log.warning('Could not annotate function .views.serve of %s',
+                        'the `staticfiles` app' if static_app is None
+                        else static_app.module, exc_info = True)
