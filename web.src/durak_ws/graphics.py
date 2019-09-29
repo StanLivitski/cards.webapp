@@ -86,6 +86,17 @@ def disable_session(view):
         return view(*args, **kwargs)
     return wrapper
 
+def cache_streaming_page(max_age):
+    def wrap(view):
+        nonlocal max_age
+        def wrapper(*args, **kwargs):
+            nonlocal view, max_age
+            response = view(*args, **kwargs)
+            patch_response_headers(response, max_age) 
+            return response
+        return wrapper
+    return wrap
+
 class SVGView(View):
 
     http_method_names = [ 'get' ]

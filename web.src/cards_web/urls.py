@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015 Stan Livitski
+# Copyright © 2015, 2019 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -35,15 +35,17 @@ Including another URLconf
     1. Add an import:  from blog import urls as blog_urls
     2. Add a URL to urlpatterns:  url(r'^blog/', include(blog_urls))
 """
-from django.conf.urls import include, url
-from django.http import HttpResponseRedirect 
-#from django.contrib import admin
 
-def defaultRedirect(request):
-    return HttpResponseRedirect('/durak/')
+from django.conf import settings
+from django.conf.urls import include, url
+from django.http import HttpResponseRedirect
+#from django.contrib import admin
 
 urlpatterns = [
 #    url(r'^admin/', include(admin.site.urls)),
     url(r'^durak/', include('durak_ws.urls')),
-    url(r'', defaultRedirect),
+    url(r'(?:.*/)?favicon.ico$',
+        lambda request: HttpResponseRedirect(
+            settings.STATIC_URL + 'durak/images/favicon.ico')),
+    url(r'', lambda request: HttpResponseRedirect('/durak/')),
 ]

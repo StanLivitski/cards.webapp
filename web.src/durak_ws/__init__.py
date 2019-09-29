@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015, 2016, 2017 Stan Livitski
+# Copyright © 2015, 2016, 2017, 2019 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -33,17 +33,6 @@ import os.path
 from django.apps.registry import apps
 from django.apps.config import AppConfig
 from django.utils.cache import patch_response_headers
-
-def cache_streaming_page(max_age):
-    def wrap(view):
-        nonlocal max_age
-        def wrapper(*args, **kwargs):
-            nonlocal view, max_age
-            response = view(*args, **kwargs)
-            patch_response_headers(response, max_age) 
-            return response
-        return wrapper
-    return wrap
 
 class Application(AppConfig):
     """
@@ -118,8 +107,9 @@ class Application(AppConfig):
                                      static_app.module.__name__)
             if static_views.serve is not graphics.disable_session:
                 static_views.serve = graphics.disable_session(
-                    cache_streaming_page(graphics.SVGView.AGE_GRAPHICS_CACHE)
-                    (static_views.serve))
+                    graphics.cache_streaming_page(
+                        graphics.SVGView.AGE_GRAPHICS_CACHE
+                    )(static_views.serve))
         except:
             log = logging.getLogger(type(self).__module__)
             log.warning('Could not annotate function .views.serve of %s',
