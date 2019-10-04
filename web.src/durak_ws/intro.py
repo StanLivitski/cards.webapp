@@ -101,6 +101,30 @@ class IntroView(ViewWithEvents):
         PlayerCheckIn.ACTIVE_FACILITY().capacity = int(setting)
 
     @staticmethod
+    def settings_lowestCardRank_set(setting, request):
+        """
+        Receives updates to ``settings-lowestCardRank`` field. 
+        
+        
+        Parameters
+        ----------
+        setting : collections.Sequence | str
+            The new low card rank limit represented as decimal string.
+            A `collections.Sequence` may also be passed here, but will
+            result in exception.
+        request : django.http.HttpRequest
+            HTTP request that caused this change.
+       
+        Raises
+        ------
+        Exception
+            If the model will not accept this update, for example due to
+            invalid argument values. 
+        """
+
+        PlayerCheckIn.ACTIVE_FACILITY().lowestCardRank = int(setting)
+
+    @staticmethod
     def settings_connectToAddress_set(setting, request):
         """
         Receives updates to ``settings-connectToAddress`` and
@@ -175,6 +199,7 @@ class IntroView(ViewWithEvents):
     SETTINGS_HANDLERS = mapping.ImmutableMap({
         'players' : settings_players_set,
         'connectToAddress' : settings_connectToAddress_set,
+        'lowCardRank' : settings_lowestCardRank_set,
     })
 
     @staticmethod
@@ -490,14 +515,17 @@ class IntroView(ViewWithEvents):
             defaultPort = request.META['SERVER_PORT']
             inboundAddresses = self._getInboundAddresses(serverName)
             playerNo = checkIn.tokens[userId]
-            countRange = WebGame.getPlayerCountRange(checkIn.gameSettings)
+            countRange = list(WebGame.getPlayerCountRange(checkIn.gameSettings))
+            if countRange[1] is None:
+                countRange[1] = durak_ws.table.TableView.SEATING_CAPACITY
+            else:
+                countRange[1] = min(countRange[1], durak_ws.table.TableView.SEATING_CAPACITY)
             contextVars = {
                 'bodyClass' : "table-background",
                 'checkin' : checkIn,
                 'gameApp' : 'durak',
-                'minimumPlayers' : countRange[0],
-                'maximumPlayers' : min(countRange[1],
-                                       durak_ws.table.TableView.SEATING_CAPACITY),
+                'playerCountRange' : countRange,
+                'lowCardRankRange' : WebGame.getLowestCardRankRange(checkIn.gameSettings),
                 'inboundAddresses' : inboundAddresses,
                 'inboundAddressOther' : type(checkIn.host) is str
                     and (checkIn.host != serverName

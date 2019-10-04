@@ -611,6 +611,7 @@ class PlayerCheckIn:
         >>> playerCount == len(checkIn.gameSettings['players'])
         True
         """
+
         settings = self._settings
         if isinstance(settings, mapping.ImmutableMap):
             return settings
@@ -1248,6 +1249,34 @@ class PlayerCheckIn:
             )
 
     capacity = property(getCapacity, setCapacity)
+
+    def getLowestCardRank(self):
+        """
+        The lowest card rank that will be present on the game's
+        deck.
+
+
+        Examples
+        --------
+        >>> from cards.durak import Game
+        >>> checkIn = PlayerCheckIn(Game)
+        >>> checkIn.lowestCardRank
+        6
+        >>> checkIn.lowestCardRank = '2'
+        >>> checkIn.lowestCardRank
+        2
+        >>> checkIn.lowestCardRank = '12'
+        Traceback (most recent call last):
+        ...
+        ValueError: Unknown card rank: "12"
+        """
+
+        return self._settings['lowestRank']
+
+    def setLowestCardRank(self, rank):
+        cards.durak.Game.setLowestCardRank(self._settings, rank)
+
+    lowestCardRank = property(getLowestCardRank, setLowestCardRank)
 
     def getHost(self):
         """

@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015, 2016, 2017 Stan Livitski
+# Copyright © 2015, 2016, 2017, 2019 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -29,6 +29,8 @@
     ------------
     Game : Abstract base class for card games.
     Player : Abstract base class for a card game player.
+    settingAccessor : Decorator of a callable that fetches or computes
+        values based on a game's `settings`.
 
 [    See Also
     --------
@@ -50,7 +52,108 @@
 """
 import abc
 import collections
-import mapping
+
+def settingAccessor(callable_):
+    """
+    Decorator of a callable that fetches or computes values based on
+    a game's `settings`.
+    
+    The wrapped callable should take a mapping with a game's settings
+    as its first (or second, in case of non-static methods) argument.
+    The result is a method that substitutes the value
+    of the `Game.settings` attribute for that argument when it receives
+    a `Game` instance. Annotated methods may also be called with
+    `settings` as the binding object, in which case the method's
+    code will receive ``None`` as the first argument. Accessors
+    that gracefully handle such calls will be able to work on
+    standalone `settings` objects.
+    
+    Parameters
+    ----------
+    callable_ : object
+        A callable object, such as a function or static method,
+        that fetches or computes values based on a game's `settings`.
+        Its sole argument should be a `collections.Mapping`.
+
+    Returns
+    -------
+    function
+        A method that can be used as settings-based property accessor
+        here or in a subclass. Returned method will accept a `Game`
+        or a `collections.Mapping` as its sole argument, and raise a
+        `TypeError` when it receives something different
+
+    Raises
+    ------
+    TypeError
+        When the argument is not a callable object.
+
+    Examples
+    --------
+    >>> @settingAccessor
+    ... def playerCount(settings):
+    ...  return settings['players']
+    >>> class TestGame(Game):
+    ...  def start(self):
+    ...   return self
+    ...  def createPlayer(self, seat):
+    ...   return Player()
+    ...  @classmethod
+    ...  def getPlayerClass(class_):
+    ...   return Player
+    >>> playerCount(TestGame())
+    2
+    >>> playerCount({'players' : 5})
+    5
+    >>> playerCount(None)
+    Traceback (most recent call last):
+    ...
+    TypeError: A @settingAccessor cannot accept an argument of type NoneType
+    """
+    # A hack to dereference @staticmethod and @classmethod decorators
+    selfNeeded = None
+    if not callable(callable_) and hasattr(callable_, '__func__'):
+        selfNeeded = isinstance(callable_, classmethod)
+        callable_ = callable_.__func__
+    if not callable(callable_):
+        raise TypeError('Argument of type %s is not callable'
+                        % type(callable_).__name__)
+    if selfNeeded is None:
+        prefix = callable_.__qualname__[:-len(callable_.__name__)]
+        if prefix:
+            assert '.' == prefix[-1]
+            prefix = prefix[:-1]
+            try:
+                selfNeeded = isinstance(eval(prefix), type)
+            except:
+                selfNeeded = False
+        else:
+            selfNeeded = False
+    if selfNeeded:
+        def accessorFunction(selfOrSettings, *args, **kwargs):
+            if isinstance(selfOrSettings, Game):
+                return callable_(selfOrSettings, selfOrSettings._settings, *args, **kwargs)
+            elif isinstance(selfOrSettings, collections.Mapping):
+                return callable_(None, selfOrSettings, *args, **kwargs)
+            else:
+                raise TypeError(
+                    'A @settingAccessor cannot accept an argument of type %s'
+                    % type(selfOrSettings).__name__)
+    else:
+        def accessorFunction(selfOrSettings, *args, **kwargs):
+            if isinstance(selfOrSettings, Game):
+                return callable_(selfOrSettings._settings, *args, **kwargs)
+            elif isinstance(selfOrSettings, collections.Mapping):
+                return callable_(selfOrSettings, *args, **kwargs)
+            else:
+                raise TypeError(
+                    'A @settingAccessor cannot accept an argument of type %s'
+                    % type(selfOrSettings).__name__)
+    if '__name__' in dir(callable_):
+        accessorFunction.__name__ = callable_.__name__
+    if '__doc__' in dir(callable_):
+        accessorFunction.__doc__ = callable_.__doc__
+    return accessorFunction
 
 class Game(object, metaclass=abc.ABCMeta):
     """
@@ -79,7 +182,7 @@ class Game(object, metaclass=abc.ABCMeta):
         supplies all player objects to this game, this argument is ignored
         and may be omitted. As an alternative to supplying this function,
         you may override the `createPlayer` method in a subclass.
-    players : int | collections.Iterable
+    players : int | collections.Collection
         The number of players in this game or a source of new
         `Player` objects to be attached to it. When this value is a
         number, or any of the values it yields is `None`, the
@@ -90,9 +193,11 @@ class Game(object, metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    settings : mapping.ImmutableMap
+    settings : abc.Mapping
         Effective values of this game's settings supplied via its
-        constructor or `defaults`().
+        constructor or `defaults`(). This mapping is mutable by
+        default, but may be made immutable at the discretion of a
+        subclass depending on the object's state.
     players : collections.Sequence
         A list of players in this game.
     [ # or # <name_of_a_property_having_its_own_docstring>
@@ -104,12 +209,6 @@ class Game(object, metaclass=abc.ABCMeta):
         Override to return default settings for a game.
     start()
         Override to set up initial state of a game within this object.
-    settingAccessor(callable)
-        Decorator of a callable that fetches or computes values based on
-        a game's `settings`. The callable should take a mapping with settings
-        as its sole argument. The result is a method that substitutes the value
-        of the `Game.settings` attribute to the wrapped callable for that
-        argument when its value is a `Game` instance.
 [    <name>([<param>, ...])
         <One-line description of a method to be emphasized among many others.>
 ]
@@ -186,8 +285,7 @@ class Game(object, metaclass=abc.ABCMeta):
                         )
                     )
                 self.players[seat] = player
-        # Make settings immutable
-        self.settings = mapping.ImmutableMap(settings)
+        self._settings = settings
         # Check player objects and attach them to the game
         seat = 0
         for player in self.players:
@@ -243,6 +341,10 @@ class Game(object, metaclass=abc.ABCMeta):
         return "%s with %d player(s)" % (
             type(self).__name__, len(self.players) )
 
+    @property
+    def settings(self):
+        return self._settings
+
     @classmethod
     def defaults(class_):
         """
@@ -258,87 +360,13 @@ class Game(object, metaclass=abc.ABCMeta):
 
         Returns
         -------           
-        dict
+        abc.mapping
             A mapping of settings' names to default values.
         """
 
         return {
             'players' : 2,
         }
-
-    @staticmethod    
-    def settingAccessor(callable_):
-        """
-        Decorator of a callable that fetches or computes values based on
-        a game's `settings`.
-        
-        The wrapped callable should take a mapping with a game's settings
-        as its sole argument. The result is a method that substitutes the value
-        of the `Game.settings` attribute for that argument when it receives
-        a `Game` instance.
-        
-        Parameters
-        ----------
-        callable_ : object
-            A callable object, such as a function or static method,
-            that fetches or computes values based on a game's `settings`.
-            Its sole argument should be a `collections.Mapping`.
-    
-        Returns
-        -------
-        function
-            A method that can be used as settings-based property accessor
-            here or in a subclass. Returned method will accept a `Game`
-            or a `collections.Mapping` as its sole argument, and raise a
-            `TypeError` when it receives something different
-    
-        Raises
-        ------
-        TypeError
-            When the argument is not a callable object.
-    
-        Examples
-        --------
-        >>> @Game.settingAccessor
-        ... def playerCount(settings):
-        ...  return settings['players']
-        >>> class TestGame(Game):
-        ...  def start(self):
-        ...   return self
-        ...  def createPlayer(self, seat):
-        ...   return Player()
-        ...  @classmethod
-        ...  def getPlayerClass(class_):
-        ...   return Player
-        >>> playerCount(TestGame())
-        2
-        >>> playerCount({'players' : 5})
-        5
-        >>> playerCount(None)
-        Traceback (most recent call last):
-        ...
-        TypeError: A @settingAccessor cannot accept an argument of type NoneType
-        """
-        # A hack to dereference @staticmethod decorators 
-        if not callable(callable_) and isinstance(callable_, staticmethod):
-            callable_ = callable_.__func__
-        if not callable(callable_):
-            raise TypeError('Argument of type %s is not callable'
-                            % type(callable_).__name__)
-        def accessorFunction(selfOrSettings):
-            if isinstance(selfOrSettings, Game):
-                return callable_(selfOrSettings.settings)
-            elif isinstance(selfOrSettings, collections.Mapping):
-                return callable_(selfOrSettings)
-            else:
-                raise TypeError(
-                    'A @settingAccessor cannot accept an argument of type %s'
-                    % type(selfOrSettings).__name__)
-        if '__name__' in dir(callable_):
-            accessorFunction.__name__ = callable_.__name__
-        if '__doc__' in dir(callable_):
-            accessorFunction.__doc__ = callable_.__doc__
-        return accessorFunction
 
     @classmethod
     @abc.abstractmethod
@@ -357,7 +385,7 @@ class Game(object, metaclass=abc.ABCMeta):
 
         raise NotImplementedError()
 
-#   @settingAccessor # use this decorator in implementations, cannot use here
+    @settingAccessor
     @staticmethod
     @abc.abstractmethod
     def getPlayerCountRange(settings):

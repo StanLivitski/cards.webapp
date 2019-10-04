@@ -99,6 +99,69 @@
     	comety.defaults.handler = handler;
     })();
 
+	function IntegerSetting(min, max, field)
+	{
+		this.min = min;
+		this.max = max;
+		this.field = field instanceof $ ? field : $(field);
+		this.value = Number(this.field.val());
+		this.rangeNotice = '{% trans "Please enter an integer between #min and #max."%}';
+	}
+	IntegerSetting.prototype.atBottom = function ()
+	{ return this.value <= this.min; }
+	IntegerSetting.prototype.atTop = function ()
+	{ return this.value >= this.max && null != this.max; }
+	IntegerSetting.prototype.increment = function (incr)
+	{
+		value = this.value + incr;
+		if (!isNaN(value) && value >= this.min
+			&& (value <= this.max || null == this.max)
+			)
+		{
+			this.field.val(value);
+			this.change(value);
+		}
+	}
+	IntegerSetting.prototype.change = function (value)
+	{
+		if (undefined == value)
+			value = Number(this.field.val());
+		with(this.field)
+		{
+			value = parseInt(val());
+			if (isNaN(value) || String(value) != val() 
+				|| value < this.min || (value > this.max && null != this.max))
+			{
+				message = this.rangeNotice;
+				message = message.replace(/#min/, this.min);
+				message = message.replace(/#max/,
+						null != this.max ? this.max : {% trans 'infinity' %});
+				with(parents(".form-group"))
+				{
+					addClass("has-warning");
+					with(find(".btn-default"))
+					{
+						removeClass("btn-default");
+						addClass("btn-warning");
+					}
+				}
+				with(parents(".form-group").find(".invalid"))
+				{
+					children(":last").text(message);
+					removeClass("hidden");
+				}
+				val(this.value);
+				return false;
+			}
+			else
+			{
+				val(value);
+				parents('form').submit();
+				return true;
+			}
+		}
+	}
+
     {% comment %}TODO: make me reusable
     NOTE: scripts should call `initForms()` in scoped mode whenever
 	they re-create respective forms
@@ -449,82 +512,35 @@
 					    		<span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
 					    	</button></span>
 						</div></div>
-						<div class="col-xs-12 text-right help-block hidden" id="settings-playerCount-invalid">
+						<div class="col-xs-12 text-right help-block hidden invalid">
 							<span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
 							<span class="sr-only">(warning)</span>
 							<span></span>
   						</div>
 					</div>
 					<script type="text/javascript"><!--
-						var settings_PlayerCount_min = {{ minimumPlayers }};
-						var settings_PlayerCount_max = {{ maximumPlayers|default_if_none:"null" }};
-						var settings_PlayerCount_value = Number($("#settings-playerCount").val());
-						function settings_PlayerCount_incr(incr)
-						{
-							value = settings_PlayerCount_value + incr;
-							if (!isNaN(value)
-								&& value >= settings_PlayerCount_min
-								&& (value <= settings_PlayerCount_max
-									|| null == settings_PlayerCount_max)
-								)
-							{
-								$('#settings-playerCount').val(value);
-								settings_PlayerCount_change();
-							}
-						}
-						function settings_PlayerCount_change()
-						{
-							with($('#settings-playerCount'))
-							{
-								value = parseInt(val());
-								if (isNaN(value) || String(value) != val() 
-									|| value < settings_PlayerCount_min
-									|| value > settings_PlayerCount_max)
-								{
-									message = "{% trans "Please enter an integer between #min and #max."%}";
-									message = message.replace(/#min/, settings_PlayerCount_min);
-									message = message.replace(/#max/, settings_PlayerCount_max);
-									with(parents(".form-group"))
-									{
-										addClass("has-warning");
-										with(find(".btn-default"))
-										{
-											removeClass("btn-default");
-											addClass("btn-warning");
-										}
-									}
-									with($("#settings-playerCount-invalid"))
-									{
-										children(":last").text(message);
-										removeClass("hidden");
-									}
-									val(settings_PlayerCount_value);
-									return false;
-								}
-								else
-								{
-									parents('form').submit();
-									return true;
-								}
-							}
-						}
+						var settings_PlayerCount = new IntegerSetting(
+							{{ playerCountRange.0 }}, {{ playerCountRange.1|default_if_none:"null" }},
+							"#settings-playerCount"
+						);
 			    		with ($("#settings-playerCount-minus"))
 			    		{
-			    		 click(function() { settings_PlayerCount_incr(-1) });
-			    		 if (settings_PlayerCount_value > settings_PlayerCount_min) {
+			    		 click(function() { settings_PlayerCount.increment(-1) });
+			    		 if (!settings_PlayerCount.atBottom()) {
 			    			 removeClass("disabled");
 			    			 removeAttr("disabled");
 			    		 }
 			    		}
 			    		with ($("#settings-playerCount-plus"))
 			    		{
-			    		 click(function() { settings_PlayerCount_incr(+1) });
-			    		 if (settings_PlayerCount_value < settings_PlayerCount_max) {
+			    		 click(function() { settings_PlayerCount.increment(+1) });
+			    		 if (!settings_PlayerCount.atTop()) {
 				    		 removeClass("disabled");
 			    			 removeAttr("disabled");
 			    		 }
 			    		}
-						$("#settings-playerCount").change(settings_PlayerCount_change);
+						$("#settings-playerCount").change(function (event) {
+							settings_PlayerCount.change() });
 					//--></script>
 					<div class="form-group">
 						<label for="settings-connectToAddress" class="col-xs-6 control-label">
@@ -599,6 +615,51 @@
 					$("#settings-connectToOther").change(settings_connectToOther_change);
 					//--></script>
 					<input class="hidden" type="reset" id="settings-reset" />
+					<div class="form-group">
+						<label for="settings-lowCardRank"
+						 class="col-xs-6 control-label">{% trans "Deck starts from rank" %}</label>
+					    <div class="col-xs-6"><div class="input-group">
+					    	<span class="input-group-btn"><button class="btn btn-default disabled"
+					    		type="button" id="settings-lowCardRank-minus" disabled>
+						    	<span class="glyphicon glyphicon-minus-sign" aria-hidden="true"></span>
+					    	</button></span>
+							<input type="text" class="form-control" size="1" id="settings-lowCardRank"
+								 name="settings-lowCardRank" placeholder="n" value="{{ checkin.lowestCardRank }}" />
+					    	<span class="input-group-btn"><button class="btn btn-default disabled"
+					    		type="button" id="settings-lowCardRank-plus" disabled>
+					    		<span class="glyphicon glyphicon-plus-sign" aria-hidden="true"></span>
+					    	</button></span>
+						</div></div>
+						<div class="col-xs-12 text-right help-block hidden invalid">
+							<span class="glyphicon glyphicon-warning-sign" aria-hidden="true"></span>
+							<span class="sr-only">(warning)</span>
+							<span></span>
+  						</div>
+					</div>
+					<script type="text/javascript"><!--
+						var settings_LowCardRank = new IntegerSetting(
+							{{ lowCardRankRange.0 }}, {{ lowCardRankRange.1 }},
+							"#settings-lowCardRank"
+						);
+			    		with ($("#settings-lowCardRank-minus"))
+			    		{
+			    		 click(function() { settings_LowCardRank.increment(-1) });
+			    		 if (!settings_LowCardRank.atBottom()) {
+			    			 removeClass("disabled");
+			    			 removeAttr("disabled");
+			    		 }
+			    		}
+			    		with ($("#settings-lowCardRank-plus"))
+			    		{
+			    		 click(function() { settings_LowCardRank.increment(+1) });
+			    		 if (!settings_LowCardRank.atTop()) {
+				    		 removeClass("disabled");
+			    			 removeAttr("disabled");
+			    		 }
+			    		}
+						$("#settings-lowCardRank").change(function (event) {
+							settings_LowCardRank.change() });
+					//--></script>
 				</form>
 				<script type="text/javascript"><!--
 					var settings_validation_handlers = [

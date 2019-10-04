@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015, 2016, 2017 Stan Livitski
+# Copyright © 2015, 2016, 2017, 2019 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -52,6 +52,7 @@
 ]
 """
 import abc
+import math
 import random
 import collections
 import os
@@ -61,6 +62,7 @@ import mapping
 import sets
 
 import cards.game
+from cards import CardFace
 
 version.requirePythonVersion(3, 1)
 
@@ -212,7 +214,7 @@ TODOdoc:
 
         return Player
 
-    @cards.game.Game.settingAccessor
+    @cards.game.settingAccessor
     @staticmethod
     def getCardsPerHand(settings):
         """
@@ -237,7 +239,148 @@ TODOdoc:
 
     cardsPerHand = property(getCardsPerHand)
 
-    @cards.game.Game.settingAccessor
+    @cards.game.settingAccessor
+    @staticmethod
+    def getLowestCardRank(settings):
+        """
+        Read the effective value of the ``lowestRank`` setting.
+
+
+        Returns
+        -------
+        str
+            The lowest card rank that will be present on the game's
+            deck.
+
+        See Also
+        --------
+        cards.ranks: enumerates all known card ranks
+        cards.SimpleDeckFactory: defines the range of accepted card rank values
+
+        Examples
+        ----------------
+        >>> def factory(game, playerNo):
+        ...   return Player()
+        >>> game = Game(factory)
+        >>> game.lowestCardRank
+        '6'
+        >>> game.lowestCardRank = 2
+        >>> game.lowestCardRank
+        '2'
+        >>> game.lowestCardRank = '11'
+        >>> game.lowestCardRank
+        '11'
+        >>> game.lowestCardRank = 1
+        Traceback (most recent call last):
+        ...
+        ValueError: Unknown card rank: "1"
+        >>> game.lowestCardRank = '12'
+        Traceback (most recent call last):
+        ...
+        ValueError: Unknown card rank: "12"
+        >>> game.lowestCardRank = 'queen'  # doctest: +IGNORE_EXCEPTION_DETAIL
+        Traceback (most recent call last):
+        ...
+        ValueError: "queen"
+        >>> settings = Game.defaults()
+        >>> settings['players'] = 4
+        >>> Game.getLowestCardRank(settings)
+        '6'
+        >>> Game.setLowestCardRank(settings, 8)
+        >>> settings['lowestRank']
+        8
+        >>> Game.setLowestCardRank(settings, 9)
+        Traceback (most recent call last):
+        ...
+        ValueError: A deck with lowest rank "9" is too small for 4 players when dealt 6 card(s) each
+        """
+
+        rank = str(settings['lowestRank'])
+        assert rank in cards.CardFace.ranks_() or rank == '11'
+        return rank
+
+    @cards.game.settingAccessor
+    def setLowestCardRank(self, settings, rank):
+        """
+        Change the value of the ``lowestRank`` setting.
+
+
+        Parameters
+        ----------
+        rank : str
+            The lowest card rank that will be present on the game's
+            deck.
+
+        Raises
+        ----------
+        TypeError
+            If the game has already started and thus won't accept the
+            change.
+        ValueError
+            If the game cannot be played with the new setting, e.g. the
+            number of players is too big for the deck.
+        """
+
+        rank = str(rank)
+        if not rank in cards.CardFace.ranks_() and not rank == '11':
+            raise ValueError('Unknown card rank: "%s"' % rank)
+        settings['lowestRank'] = int(rank)
+        deckFactory = Game.createDeckFactory(settings)
+        playerCount = len(settings['players']) \
+            if isinstance(settings['players'], collections.abc.Sized) \
+            else int(settings['players'])
+        if deckFactory.cardCount() < 1 + settings['cardsPerHand'] * playerCount:
+            raise ValueError('A deck with lowest rank "%s" is'
+                ' too small for %d players when dealt %d card(s) each'
+                % (rank, playerCount, settings['cardsPerHand']))
+        if self is not None:
+            self.deckFactory = deckFactory
+
+    lowestCardRank = property(getLowestCardRank, setLowestCardRank)
+
+    @cards.game.settingAccessor
+    @staticmethod
+    def getLowestCardRankRange(settings):
+        """
+        Read the range of possible lowest card ranks that may be
+        present on the deck given the current player count.
+
+        The minimum is a fixed value of ``2``, but may be
+        different in subclasses. The maximum depends
+        on the current player count, since a single deck
+        must accommodate the number of hands to be dealt.
+
+        Returns
+        -------
+        (int, int)
+            The tuple of smallest and the largest
+            rank of the lowest cars from the deck.
+            Neither element may be negative, and the second
+            element must not be smaller than the first.
+
+        Examples
+        ----------------
+        >>> def factory(game, playerNo):
+        ...   return Player()
+        >>> game = Game(factory)
+        >>> game.lowestCardRankRange
+        (2, 11)
+        >>> settings = Game.defaults()
+        >>> settings['players'] = 8
+        >>> Game.getLowestCardRankRange(settings)
+        (2, 2)
+        """
+
+        suitCount = len(CardFace.suits_())
+        playerCount = len(settings['players']) \
+            if isinstance(settings['players'], collections.abc.Sized) \
+            else int(settings['players'])
+        dealCount = playerCount * Game.getCardsPerHand(settings) + 1
+        return (2, 15 - int(math.ceil(dealCount / suitCount)))
+
+    lowestCardRankRange = property(getLowestCardRankRange)
+
+    @cards.game.settingAccessor
     @staticmethod
     def getPlayerCountRange(settings):
         """
@@ -274,7 +417,7 @@ TODOdoc:
 
     playerCountRange = property(getPlayerCountRange)
 
-    @cards.game.Game.settingAccessor
+    @cards.game.settingAccessor
     @staticmethod
     def createDeckFactory(settings):
         """
@@ -291,6 +434,12 @@ TODOdoc:
 
     # TODO: convert this into a setting
     defaultSuitOrder = ('spades', 'diamonds', 'clubs', 'hearts')
+
+    @property
+    def settings(self):
+        settings = self._settings
+        return settings if isinstance(settings, mapping.ImmutableMap) \
+            else mapping.ImmutableMap(settings)
 
     @classmethod
     def defaults(class_):
@@ -382,9 +531,10 @@ TODOdoc:
 
     def start(self, dealer=None):
         """
-        Establishes initial state of a game.
+        Establish initial state of a game in progress.
         
-        This method establishes initial state of the game by dealing
+        This method establishes initial state of the game by freezing
+        the settings that can't change during the game, dealing
         hands to players, pulling the trump card, preparing the
         stock, and setting up first turn. It can also be used to
         start a new game with the same players when the current game
@@ -440,13 +590,16 @@ TODOdoc:
         True
         """
   
-        import traceback
         if self.attacker is not None:
             raise Error(
                 ('A game is in progress at bout #%d,'
                 + ' cannot restart until it ends')
                 % ( self._turn + 1 )
             )
+        # Freeze the settings
+        settings = self._settings
+        if not isinstance(settings, mapping.ImmutableMap):
+            self._settings = mapping.ImmutableMap(settings)
         if dealer is None:
             dealer = cards.Dealer()
         deck = dealer.shuffle(self.deckFactory.makeDeck(), 3)
@@ -1138,8 +1291,8 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> game.players[1].defend(
     ... {cards.CardFace('JD'): cards.CardFace('KH'),
     ...  cards.CardFace('JC'): cards.CardFace('KC')
-    ... })
-    {CardFace('KC'), CardFace('KH')}
+    ... }).difference({CardFace('KC'), CardFace('KH')})
+    set()
     >>> game.cardsOnTable()
     []
     >>> game.players[0].hand

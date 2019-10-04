@@ -551,6 +551,7 @@ class SimpleDeckFactory(DeckFactory):
     ... }
     True
     """
+
     def __init__(self, lowestRank = 2, jokers = 2):
         if not 2 <= lowestRank <= 11:
             raise ValueError(
