@@ -81,7 +81,7 @@ class Game(cards.game.Game):
         more hands can be dealt. With the lowest rank of 6 (the
         default), the number of players admitted is 5.
     loserDefends : bool
-        Whether or not the loser (fool) is the first defender
+        Whether or not the loser (fool) is the first defendant
         of the new game. Default is ``False``, meaning that the
         the first attacker in a new game seats on the loser's
         left.
@@ -103,34 +103,46 @@ class Game(cards.game.Game):
     attacker : int | None
         Index of the first attacking player for the pending current turn
         or None if the attacking player has not yet been determined.
-    defender : int | None
+    defendant : int | None
         Index of the defending player for the pending or current turn
         or None if the defending player has not yet been determined.
-    fool : int | None
-        Index of the player that lost the last non-draw game,
-        or None if no game has finished yet.
+    result : (int, int) | None
+        A tuple with the last game winner's and loser's indexes, or
+        ``None`` if no game had started yet or the last game was a tie.
+        If there is a game in progress (see `playing`), the value of this
+        property is unspecified.
+    gamesPlayed : int
+        The number of games played thus far.
     deckFactory : cards.DeckFactory
         An object that generates decks for this game.
     trumpCard : cards.CardFace
         The card at the bottom of stock that shows the trump suit.
-    stockCount: int
+    stockCount : int
         The number of cards remaining in stock, including the trump
         card.
-    fools : collections.Sequence
-        A sequence that accumulates loss counts by players in prior
-        games.
+    stats : collections.Sequence
+        A sequence that accumulates win and loss counts by players
+        in prior games. Elements are tuples with win and loss counts,
+        in that order, for each player's seat.
     rankKeys : collections.Mapping
         Maps known card ranks to integer values for ordering
         within a suit. Jokers do not have a rank.
+    playing
+    lowestCardRank
+    lowestCardRankRange
+    playerCountRange
+    cardsPerHand
 
     Methods
     ---------------
     cardsOnTable(self):
-        Take a snapshot of the cards played during the current turn.
+        Takes a snapshot of the cards played during the current turn.
     createDeckFactory(settings):
-        Create a factory object according to this game's configuration.
+        Creates a factory object according to this game's configuration.
     rankKey(rank):
-        Return a numeric key for a card's rank.
+        Returns a numeric key for a card's rank.
+    gameOver(self, result):
+        Override this method to get notified when a game ends.
 TODOdoc:
     <name>([<param>, ...])
         <One-line description of a method to be emphasized among many others.>
@@ -169,14 +181,17 @@ TODOdoc:
     6
     >>> len(game.players)
     2
+    >>> game.gamesPlayed
+    0
     """
 
     def __init__(self, playerFactory=None, **userSettings):
         super().__init__(playerFactory, **userSettings)
         self.deckFactory = self.createDeckFactory()
-        self.defender = None
+        self.defendant = None
         self.attacker = None
-        self.fool = None
+        self.result = None
+        self.gamesPlayed = 0
         self._firstAttackClaims = None
         self._cardsOnTable = None
         playerCount = len(self.players)
@@ -196,7 +211,27 @@ TODOdoc:
                     % (i, Player.__module__, Player.__name__, type(player))
                 )
             i += 1
-        self.fools = [ 0 ] * playerCount
+        self.stats = [ (0, 0) ] * playerCount
+
+    @property
+    def playing(self):
+        """
+        Flag telling whether a game is in progress at the moment.
+
+
+        Returns
+        -------
+        boolean
+            Whether a game is currently played.
+    
+    [   Examples
+        --------
+        <In the doctest format, illustrate how to use this method.>
+         ]
+        """
+
+        return self.attacker is not None
+
 
     @classmethod
     def getPlayerClass(class_):
@@ -584,9 +619,11 @@ TODOdoc:
         True
         >>> game.attacker < playerCount
         True
-        >>> game.defender < playerCount
+        >>> game.defendant < playerCount
         True
-        >>> game.defender != game.attacker
+        >>> game.defendant != game.attacker
+        True
+        >>> game.playing
         True
         """
   
@@ -641,7 +678,7 @@ TODOdoc:
                     'FIRSTATTACKER %d is out of range (0, %d)'
                     % (index, len(self.players))
                 )
-        elif self.fool is None:
+        elif self.result is None:
             index = min(
                     self._firstAttackClaims, key =
                      lambda claim: Game.rankKey(claim[0])
@@ -649,14 +686,15 @@ TODOdoc:
                     random.randrange(len(self.players))
             self.attacker = index
         elif self.settings['loserDefends']:
-            # make the fool first defender
-            self.attacker = self.nextPlayersIndex(self.fool, reverse = True)
+            # make the fool first defendant
+            self.attacker = self.nextPlayersIndex(self.result[1], reverse = True)
         else:
             # by default the attacker is to the loser's left
-            self.attacker = self.nextPlayersIndex(self.fool)
-        self.defender = self.nextPlayersIndex(self.attacker)
+            self.attacker = self.nextPlayersIndex(self.result[1])
+        self.defendant = self.nextPlayersIndex(self.attacker)
         del self._dealt
         self._firstAttackClaims = None
+        self.result = (None, None)
         return self
 
     def cardsOnTable(self):
@@ -760,14 +798,32 @@ TODOdoc:
             index = len(self.players) - 1
         return index
 
+    def gameOver(self, result):
+        """
+        Override this method to get notified when a game ends.
+        
+        This method must not return a value or raise exceptions.
+        Default implementation updates the `gamesPlayed` property.
+        You should call it from overriding methods.
+
+        Parameters
+        ----------
+        result : (int, int) | None
+            A tuple with the game winner's and loser's indexes, or
+            ``None`` if there was a tie.
+        """
+
+        self.gamesPlayed += 1
+
     def _claimFirstAttack(self, player, lowTrump):
         """
         Called by player objects receiving their cards when first game begins
         to determine which player moves first.
         
         According to the rules, the player with the lowest trump is the first
-        attacker in the first game. In subsequent games, the first attacker is
-        the player to the right of the last game's loser (the fool). This
+        attacker in the first game. In subsequent games, unless there was a
+        draw, the first attacker is the player to the 
+        right of the last game's loser (the fool). This
         method is called by players to claim their right to first attack. The
         implementation can verify the trump card presented by a player
         immediately, or defer verification until presented card is actually
@@ -827,7 +883,7 @@ TODOdoc:
 
     def _attack(self, player, cards_):
         """
-        Attack the current defender.
+        Attack the current defendant.
         
         Plays, or throws in, card(s) into the new or current attack.
         This method should only be called by the the attacking player
@@ -835,7 +891,7 @@ TODOdoc:
         a player to attack when:
         
          - s/he is an attacker and the turn has just begun; or
-         - s/he is not a defender and joins the attack after it was
+         - s/he is not a defendant and joins the attack after it was
            launched, unless the limit of cards per attack has been
            reached or the turn has ended
         
@@ -879,13 +935,13 @@ TODOdoc:
 
         # check that this attack is appropriate
         playerIndex = self.players.index(player)
-        if self.defender is None or self.attacker is None:
+        if self.defendant is None or self.attacker is None:
             raise Error(
                 'attack by %s cannot be started at this time' % player
             )
-        elif self.defender == playerIndex:
+        elif self.defendant == playerIndex:
             raise Error(
-                '%s is the defender and cannot attack' % player
+                '%s is the defendant and cannot attack' % player
             )
         elif not self._cardsOnTable and playerIndex != self.attacker:   
             raise Error(
@@ -917,10 +973,10 @@ TODOdoc:
                     )
         else:
             cardIter = iter(cards_)
-            card = cardIter.__next__()
+            card = next(cardIter)
             try:
                 while True:
-                    card2 = cardIter.__next__()
+                    card2 = next(cardIter)
                     if card2.rank != card.rank:
                         raise Error(
                             "Rank of card '%s' does not match the first card played: '%s'"
@@ -942,6 +998,10 @@ TODOdoc:
                 raise Error("card '%s' has already been played" % card.code)
             self._cardsOnTable[card] = None
             laid.add(card)
+        if not self._stock and self.result[0] is None \
+            and set(self.players[playerIndex].hand) == laid:
+                # this player may have won
+                self.result = (playerIndex, self.result[1])
         return laid
 
     def _defense(self, player, cardsMap):
@@ -960,13 +1020,13 @@ TODOdoc:
         player : Player
             Reference to the defending player.
         cardsMap : collections.Mapping
-            A mapping of attacking cards on the table to the defender's
+            A mapping of attacking cards on the table to the defendant's
             cards laid to beat them.
     
         Returns
         -------
         collections.Sized & collections.Iterable & collections.Container
-            The defender's cards that have been accepted. Cards from the
+            The defendant's cards that have been accepted. Cards from the
             argument with keys not present on the table or which already
             have been beat, or cards that won't beat its key card are not
             included in the result. The returned collection may be empty
@@ -989,15 +1049,15 @@ TODOdoc:
 
         # check that this move is appropriate
         playerIndex = self.players.index(player)
-        if self.defender is None or self.attacker is None:
+        if self.defendant is None or self.attacker is None:
             raise Error(
                 'defense by %s is not allowed at this time' % player
             )
-        elif self.defender != playerIndex:
+        elif self.defendant != playerIndex:
             raise Error(
-                '%s is not the defender and cannot defend' % player
+                '%s is not the defendant and cannot defend' % player
             )
-        elif self.defender in self._quits:
+        elif self.defendant in self._quits:
             raise Error(
                 '%s has abandoned the defense' % player
             )
@@ -1029,12 +1089,12 @@ TODOdoc:
 
     def _quitTurn(self, player):
         """
-        Signal the end of game by a player in the current turn.
+        Signal the end of turn for a specific player.
         
         Called by a player object to signal end of that player's participation
         in the current turn. This method determines whether the current turn
         should end according to the rules, and transitions the game into a new
-        turn accordingly.
+        turn, or calls `gameOver` if the game has ended.
         
         Parameters
         ----------
@@ -1058,8 +1118,8 @@ TODOdoc:
     
         playerIndex = self.players.index(player)
         unbeat = any( card is None for card in self._cardsOnTable.values() )
-        oldDefender, oldAttacker = self.defender, self.attacker
-        if oldDefender is None or oldAttacker is None \
+        oldDefendant, oldAttacker = self.defendant, self.attacker
+        if oldDefendant is None or oldAttacker is None \
              or self._cardsOnTable is None:
             raise Error(
                 '%s cannot quit the turn - no turn is in progress' % player
@@ -1069,7 +1129,7 @@ TODOdoc:
                 '%s cannot quit the turn - no cards have been played yet'
                 % player
             )
-        elif self.defender != playerIndex:
+        elif self.defendant != playerIndex:
             self._quits.add(playerIndex)
         elif unbeat:
             # allow others to throw in cards until the limit is reached
@@ -1077,40 +1137,40 @@ TODOdoc:
 
         if unbeat and all(
               i in self._quits for i in range(0, len(self.players)) ):
-            # abandoned defense - give the cards to ex-defender
-            defender = self.players[self.defender]
+            # abandoned defense - give the cards to ex-defendant
+            defendant = self.players[self.defendant]
             for pair in self._cardsOnTable.items():
-                defender._receiveCards(pair[0])
+                defendant._receiveCards(pair[0])
                 if pair[1] is not None:
-                    defender._receiveCards(pair[1])
+                    defendant._receiveCards(pair[1])
             self._cardsOnTable.clear()
-            self.attacker = self.nextPlayersIndex(self.defender)
-            self.defender = None
+            self.attacker = self.nextPlayersIndex(self.defendant)
+            self.defendant = None
         elif not unbeat and (
                 self._isCardLimitReached() or all( i in self._quits
-                for i in range(0, len(self.players)) if self.defender != i )
+                for i in range(0, len(self.players)) if self.defendant != i )
             ):
             # end of turn, discard - all players quit, cards beaten
             for pair in self._cardsOnTable.items():
                 assert pair[1] is not None
                 self._discarded.update(pair)
             self._cardsOnTable.clear()
-            self.attacker = self.defender
-            self.defender = None
+            self.attacker = self.defendant
+            self.defendant = None
 
         # prepare next turn if the turn is over
-        if self.defender is None:               
+        if self.defendant is None:               
             self._quits.clear()
             # deal cards to the former attacker first
             self._replaceCards(self.players[oldAttacker])
             # deal cards to the other contributors
-            index = oldDefender
+            index = oldDefendant
             while oldAttacker != index:
-                if index != oldDefender:
+                if index != oldDefendant:
                     self._replaceCards(self.players[index])
                 index = self.nextPlayersIndex(index)
-            # deal cards to the former defender last
-            self._replaceCards(self.players[oldDefender])
+            # deal cards to the former defendant last
+            self._replaceCards(self.players[oldDefendant])
             # a player can attack only if s/he has cards
             i = self.attacker
             while not self.players[i].hand:
@@ -1119,7 +1179,8 @@ TODOdoc:
                     break
             if not self.players[i].hand:
                 # game over, draw
-                self.attacker = None
+                self.fool = self.attacker = None
+                self.gameOver(None)
             else:
                 self.attacker = i
                 # a player can defend only if s/he has cards
@@ -1129,11 +1190,15 @@ TODOdoc:
                         break           
                 if self.attacker == i:
                     # game over, player #i lost
-                    self.fool = i
-                    self.fools[i] += 1
+                    winner = self.result[0]
+                    self.result = ( winner, i )
+                    self.stats[i] = ( self.stats[i][0], 1 + self.stats[i][1])
+                    self.stats[winner] = ( self.stats[winner][0] + 1,
+                                           self.stats[winner][1])
                     self.attacker = None
+                    self.gameOver(self.result)
                 else:
-                    self.defender = i
+                    self.defendant = i
                     self._cardsDefending = len(self.players[i].hand)
                     self._turn += 1
 
@@ -1151,6 +1216,10 @@ TODOdoc:
         while self.cardsPerHand > len(hand) and self._stock:
             card = self._stock.pop()
             player._receiveCards(card)
+        if not hand and self.result[0] is None:
+            # this player may have won
+            playerIndex = self.players.index(player)
+            self.result = (playerIndex, self.result[1])
 
     # TODO: player notifications (provide notes for recursion avoidance)
 
@@ -1177,7 +1246,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     Methods
     ---------------
     attack(cards_):
-        Attack the current defender.
+        Attack the current defendant.
     defend(cardsMap):
         Defend the current turn.
     quitTurn():
@@ -1206,11 +1275,20 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> from cards import CardFace
     >>> def factory(game, playerNo):
     ...   return Player()
-    >>> game = Game(factory, players = 2, lowestRank = 10)
+    >>> class TestGame(Game):
+    ...  def gameOver(self, result):
+    ...   super().gameOver(result)
+    ...   print("Game over, %s" % ('tie' if result is None
+    ...    else '%d won, %d lost.' % result))
+    >>> game = TestGame(factory, players = 2, lowestRank = 10)
     >>> game.settings['lowestRank']
     10
     >>> len(game.players)
     2
+    >>> game.playing
+    False
+    >>> game.gamesPlayed
+    0
     >>> class Dealer(cards.Dealer):
     ...  def shuffle(self, deck, times=1):
     ...   return [ deck ]
@@ -1221,6 +1299,8 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     ...      [ cards.CardFace(code) for code in ('QH','QS','KS','KC','KH','KD') ],
     ...   )
     >>> game=game.start(Dealer())
+    >>> game.playing
+    True
     >>> game.trumpCard
     CardFace('AH')
     >>> game.attacker
@@ -1236,7 +1316,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> game.players[1].attack([cards.CardFace('QS')])
     Traceback (most recent call last):
     ...
-    Error: player #1 is the defender and cannot attack
+    Error: player #1 is the defendant and cannot attack
     >>> game.players[0].attack([cards.CardFace('QS')])
     Traceback (most recent call last):
     ...
@@ -1299,12 +1379,12 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     Hand(CardFace('10S'), CardFace('AS'), CardFace('AD'), CardFace('QC'), CardFace('AC'), CardFace('10H'))
     >>> game.players[1].hand
     Hand(CardFace('KS'), CardFace('10D'), CardFace('10C'), CardFace('AH'))
-    >>> (game.attacker, game.defender)
+    >>> (game.attacker, game.defendant)
     (1, 0)
     >>> game.players[1].defend({})
     Traceback (most recent call last):
     ...
-    Error: player #1 is not the defender and cannot defend
+    Error: player #1 is not the defendant and cannot defend
     >>> game.players[1].attack((cards.CardFace('KS'), cards.CardFace('10D')))
     Traceback (most recent call last):
     ...
@@ -1324,7 +1404,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> game.players[1].quitTurn()
     >>> game.cardsOnTable()
     []
-    >>> (game.attacker, game.defender)
+    >>> (game.attacker, game.defendant)
     (0, 1)
     >>> game.players[0].hand
     Hand(CardFace('10S'), CardFace('AS'), CardFace('AD'), CardFace('AC'))
@@ -1343,7 +1423,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> game.players[0].quitTurn()
     >>> game.cardsOnTable()
     []
-    >>> (game.attacker, game.defender)
+    >>> (game.attacker, game.defendant)
     (0, 1)
     >>> game.players[0].hand
     Hand(CardFace('10S'), CardFace('AC'))
@@ -1359,12 +1439,14 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     >>> game.players[0].quitTurn()
     >>> game.cardsOnTable()
     []
-    >>> (game.attacker, game.defender)
+    >>> (game.attacker, game.defendant)
     (1, 0)
     >>> game.players[0].status
     'defending'
     >>> game.players[1].status
     'attacking'
+    >>> game.playing
+    True
     >>> game.players[0].hand
     Hand(CardFace('AC'),)
     >>> game.players[1].hand
@@ -1379,7 +1461,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     Hand(CardFace('AS'), CardFace('AC'))
     >>> game.players[1].hand
     Hand(CardFace('AD'), CardFace('AH'))
-    >>> (game.attacker, game.defender)
+    >>> (game.attacker, game.defendant)
     (1, 0)
     >>> game.players[1].attack([CardFace('AD')])
     {CardFace('AD')}
@@ -1388,20 +1470,25 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     'collecting'
     >>> game.cardsOnTable()
     [(CardFace('AD'),)]
+    >>> game.playing
+    True
     >>> game.players[1].attack([CardFace('AH')])
+    Game over, 1 won, 0 lost.
     {CardFace('AH')}
-    >>> game.fool
-    >>> game.players[1].quitTurn()
+    >>> game.playing
+    False
     >>> game.cardsOnTable()
     []
     >>> game.players[0].hand
     Hand(CardFace('AS'), CardFace('AD'), CardFace('AC'), CardFace('AH'))
     >>> game.players[1].hand
     Hand()
-    >>> game.fool
-    0
-    >>> game.fools
-    [1, 0]
+    >>> game.result
+    (1, 0)
+    >>> game.stats
+    [(0, 1), (1, 0)]
+    >>> game.gamesPlayed
+    1
     """
 
     def __init__(self, *pos, **kw):
@@ -1413,10 +1500,10 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         self.modCount = 0
 
     STATUM = (
-        ('collecting', lambda game, index: game.defender == index and index in game._quits),
-        ('quit', lambda game, index: game.defender != index and index in game._quits),
+        ('collecting', lambda game, index: game.defendant == index and index in game._quits),
+        ('quit', lambda game, index: game.defendant != index and index in game._quits),
         ('attacking', lambda game, index: game.attacker == index),
-        ('defending', lambda game, index: game.defender == index),
+        ('defending', lambda game, index: game.defendant == index),
         ('other', lambda game, index: True),
     )
 
@@ -1578,7 +1665,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
             if self.game is not None and self.game.attacker is None:
                 trumps = self._hand[self.game.trumpCard.suit]
                 if trumps:
-                    self.game._claimFirstAttack(self, iter(trumps).__next__())
+                    self.game._claimFirstAttack(self, next(iter(trumps)))
         elif isinstance(cards_, cards.CardFace):
             suit = self._hand[cards_.suit]
             if cards_ in suit:
@@ -1593,7 +1680,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
 
     def attack(self, cards_):
         """
-        Attack the current defender.
+        Attack the current defendant.
         
         Launch an attack with selected cards from this player's hand.
         This method should only be called by the UI or AI that controls
@@ -1601,7 +1688,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         rules permit a player to attack when:
         
          - s/he is an attacker and the turn has just begun; or
-         - s/he is not a defender and joins the attack after it was
+         - s/he is not a defendant and joins the attack after it was
            launched, unless the limit of cards per attack has been
            reached or the turn has ended
         
@@ -1659,6 +1746,9 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         for card in laid:
             self.modCount += 1
             self._hand[card.suit].discard(card)
+        # quit the attack when there are no more cards to play
+        if not self.hand:
+            self.game._quitTurn(self)
         return laid
 
     def defend(self, cardsMap):
@@ -1672,7 +1762,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         as keys. Cards accepted for the defense are included in the
         return value. Note that this method may reject some cards without
         raising an exception. The cards laid by calling this method are
-        removed from the defender's hand.
+        removed from the defendant's hand.
 
         When the defense beats all cards on the table, and the card
         limit for the turn has been reached or all other players have
@@ -1681,13 +1771,13 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         Parameters
         ----------
         cardsMap : collections.Mapping
-            A mapping of attacking cards on the table to the defender's
+            A mapping of attacking cards on the table to the defendant's
             cards laid to beat them.
     
         Returns
         -------
         collections.Sized & collections.Iterable & collections.Container
-            The defender's cards that have been accepted. Cards from the
+            The defendant's cards that have been accepted. Cards from the
             argument with keys not present on the table or which already
             have been beat, or cards that won't beat its key
             card are not included in the result. The returned collection
@@ -1732,7 +1822,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         # -- all other players quit
         # NOTE: defending cards must be removed from the player's hand first
         if (game._isCardLimitReached() or all( i in game._quits
-                for i in range(len(game.players)) if i != game.defender)) \
+                for i in range(len(game.players)) if i != game.defendant)) \
              and all(card is not None for card in game._cardsOnTable.values()):
             game._quitTurn(self)
         return laid
@@ -1742,12 +1832,12 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         Request the end of the current turn for this player.
         
         Called to signal the end of this player's participation
-        in the current turn. When called on the defender who hasn't beaten
+        in the current turn. When called on the defendant who hasn't beaten
         all the cards laid, this method results in an abandoned defense.
         Other players are then allowed to throw in cards with matching ranks
         until the card limit is reached or all players quit the turn.
         If all cards have been beaten, this method has no effect when called
-        on the defender, unless the number of cards has reached its limit
+        on the defendant, unless the number of cards has reached its limit
         for the turn. When the limit is reached, this method ends the turn.
         When called on a non-defending player, that player is no longer
         allowed to attack until the end of this turn. When all non-defending
@@ -1818,9 +1908,9 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
                     )
                 while True:
                     if self._iter is None:
-                        self._iter = iter(self._hand._internal[self._suits.__next__()])
+                        self._iter = iter(self._hand._internal[next(self._suits)])
                     try:
-                        return self._iter.__next__()
+                        return next(self._iter)
                     except StopIteration:
                         self._iter = None
 

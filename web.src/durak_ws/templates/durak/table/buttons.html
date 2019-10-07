@@ -37,6 +37,14 @@
 			 btn-danger">{% trans "Give up" %}
 			{% else %}btn-success">{% trans "End turn" %}
 			{% endif %}</button>
+		<button type="button" {% trans "Messages" as messages_caption %}
+	        aria-label="{{messages_caption}}" title="{{messages_caption}}"
+			data-sc-font-size="FS" class="btn btn-default scaler active btn-xs"
+			data-sc-padding="[Math.round(FS/6), Math.round(FS/2)]">
+	        <span class="glyphicon glyphicon-envelope scaler"
+		        data-sc-top="Math.round(FS/6)" aria-hidden="true"></span>
+        </button>
+{% comment %}
 		<button type="button" {% trans "Settings" as settings_caption %}
 	        aria-label="{{settings_caption}}" title="{{settings_caption}}"
 			data-sc-font-size="FS" class="btn btn-default scaler active btn-xs"
@@ -44,6 +52,7 @@
 	        <span class="glyphicon glyphicon-cog scaler"
 		        data-sc-top="Math.round(FS/6)" aria-hidden="true"></span>
         </button>
+{% endcomment %}
 	{% with status=statum|get:player.status %}{% if status %}
 		<span class="glyphicon {{status.0}} scaler" aria-hidden="true"
 			 title="{{status.2}}" data-sc-top="Math.round(FS/4)" style="color: white"

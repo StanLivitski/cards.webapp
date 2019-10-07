@@ -33,14 +33,29 @@
     <script type="text/javascript"><!--
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
     comety.defaults.url = "{% url 'table-updates' %}";
-	{% comment %} // A stub to inspect arriving Comety events
-    comety.defaults.handler = function() {
-		var _oldHandler = comety.defaults.handler;
+	comety.defaults.handler = (function() {
+    	var defaultHandler = comety.defaults.handler;
 		return function(events, loopParams) {
-	    	alert ( "Event(s) occurred: " + JSON.stringify(events) ); // console.log
-	    	return _oldHandler.apply(this, arguments); // events.length;
+        	switch (events[0][1].event)
+       		{
+       		case "game-over":
+       			alert(
+       				"Game over, " + (
+       					null == events[0][1]['result'] ? 'draw.'
+       						: 'player ' + (1 + events[0][1].result[0]) + ' won; '
+       						+ 'player ' + (1 + events[0][1].result[1]) + ' lost.')
+       			);
+        		location.replace("{% url 'intro' %}");
+        		return 0;
+       		// case "play":
+			// return 1; // events.length;
+       		default:
+       			// alert( "Unhandled event(s) occurred: " + JSON.stringify(events) ); // console.log
+	    		return defaultHandler.apply(this, arguments);
+       		}
 		};
-    }();
+    })();
+	{% comment %} // A stub to inspect arriving Comety events
 	{% endcomment %}
 	// --></script>
 	<link rel="stylesheet" type="text/css" href="{% static 'scaler/scaler.css' %}" />

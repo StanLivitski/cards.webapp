@@ -1009,11 +1009,11 @@ class PlayerCheckIn:
         >>> checkIn.close()
         >>> type(checkIn.game) is Game
         True
-        >>> checkIn.game.defender is None
+        >>> checkIn.game.defendant is None
         False
         >>> checkIn.game.attacker is None
         False
-        >>> checkIn.game.defender == checkIn.game.attacker
+        >>> checkIn.game.defendant == checkIn.game.attacker
         False
         """
 
@@ -1765,7 +1765,7 @@ class DropBox:
         Override this method to process responses from
         the message recipient.
         
-        This method does must not return a value or raise exceptions.
+        This method must not return a value or raise exceptions.
         Default implementation does nothing.
 
         Parameters
@@ -2005,6 +2005,9 @@ class WebGame(cards.durak.Game, DropBox):
         DropBox.__init__(self)
         self._comety = uiDispatcher 
 
+    PLAY_EVENT = 'play'
+    GAME_OVER_EVENT = 'game-over'
+
     @classmethod
     def getPlayerClass(class_):
         """
@@ -2094,8 +2097,22 @@ class WebGame(cards.durak.Game, DropBox):
                 type(exception).__name__, message, exception
             )
 
-    PLAY_EVENT = 'play'
+    def gameOver(self, result):
+        """
+        Notify players when the game ends.
+        
+        This method must not return a value or raise exceptions.
 
+        Parameters
+        ----------
+        result : (int, int) | None
+            A tuple with the game winner's and loser's indexes, or
+            ``None`` if there was a tie.
+        """
+
+        super().gameOver(result)
+        self.uiDispatcher.postEvent(self, event = self.GAME_OVER_EVENT,
+                                    result = result)
 
 class RemoteEntity:
     """

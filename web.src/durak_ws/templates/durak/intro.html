@@ -35,9 +35,9 @@
     <script type="text/javascript"><!--
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
     comety.defaults.url = "{% url 'intro-updates' %}";
-    (function() {
+    comety.defaults.handler = (function() {
     	var defaultHandler = comety.defaults.handler;
-    	function handler(events, loopParams) {
+    	return function (events, loopParams) {
         	switch (events[0][1].event)
        		{
        		case "game-start":
@@ -93,10 +93,9 @@
     				onUserInfoChange();
         		return 1;
         	default:
-        		return defaultHandler(events, loopParams);
+        		return defaultHandler.apply(this, arguments);
        		}
     	}
-    	comety.defaults.handler = handler;
     })();
 
 	function IntegerSetting(min, max, field)
