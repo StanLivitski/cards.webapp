@@ -107,12 +107,10 @@ class Game(cards.game.Game):
         Index of the defending player for the pending or current turn
         or None if the defending player has not yet been determined.
     result : (int, int) | None
-        A tuple with the last game winner's and loser's indexes, or
-        ``None`` if no game had started yet or the last game was a tie.
+        A tuple with this or prior game winner's and loser's indexes, or
+        ``None`` if no game had started yet or the prior game was a tie.
         If there is a game in progress (see `playing`), the value of this
         property is unspecified.
-    gamesPlayed : int
-        The number of games played thus far.
     deckFactory : cards.DeckFactory
         An object that generates decks for this game.
     trumpCard : cards.CardFace
@@ -120,10 +118,6 @@ class Game(cards.game.Game):
     stockCount : int
         The number of cards remaining in stock, including the trump
         card.
-    stats : collections.Sequence
-        A sequence that accumulates win and loss counts by players
-        in prior games. Elements are tuples with win and loss counts,
-        in that order, for each player's seat.
     rankKeys : collections.Mapping
         Maps known card ranks to integer values for ordering
         within a suit. Jokers do not have a rank.
@@ -181,8 +175,6 @@ TODOdoc:
     6
     >>> len(game.players)
     2
-    >>> game.gamesPlayed
-    0
     """
 
     def __init__(self, playerFactory=None, **userSettings):
@@ -191,9 +183,9 @@ TODOdoc:
         self.defendant = None
         self.attacker = None
         self.result = None
-        self.gamesPlayed = 0
         self._firstAttackClaims = None
         self._cardsOnTable = None
+        self._turn = None
         playerCount = len(self.players)
         playerCountRange = self.playerCountRange
         if playerCountRange[0] > playerCount:
@@ -211,7 +203,6 @@ TODOdoc:
                     % (i, Player.__module__, Player.__name__, type(player))
                 )
             i += 1
-        self.stats = [ (0, 0) ] * playerCount
 
     @property
     def playing(self):
@@ -294,33 +285,28 @@ TODOdoc:
 
         Examples
         ----------------
-        >>> def factory(game, playerNo):
-        ...   return Player()
-        >>> game = Game(factory)
-        >>> game.lowestCardRank
+        >>> settings = Game.defaults()
+        >>> Game.getLowestCardRank(settings)
         '6'
-        >>> game.lowestCardRank = 2
-        >>> game.lowestCardRank
+        >>> Game.setLowestCardRank(settings, 2)
+        >>> Game.getLowestCardRank(settings)
         '2'
-        >>> game.lowestCardRank = '11'
-        >>> game.lowestCardRank
+        >>> Game.setLowestCardRank(settings, '11')
+        >>> Game.getLowestCardRank(settings)
         '11'
-        >>> game.lowestCardRank = 1
+        >>> Game.setLowestCardRank(settings, 1)
         Traceback (most recent call last):
         ...
         ValueError: Unknown card rank: "1"
-        >>> game.lowestCardRank = '12'
+        >>> Game.setLowestCardRank(settings, '12')
         Traceback (most recent call last):
         ...
         ValueError: Unknown card rank: "12"
-        >>> game.lowestCardRank = 'queen'  # doctest: +IGNORE_EXCEPTION_DETAIL
+        >>> Game.setLowestCardRank(settings, 'queen')  # doctest: +IGNORE_EXCEPTION_DETAIL
         Traceback (most recent call last):
         ...
         ValueError: "queen"
-        >>> settings = Game.defaults()
         >>> settings['players'] = 4
-        >>> Game.getLowestCardRank(settings)
-        '6'
         >>> Game.setLowestCardRank(settings, 8)
         >>> settings['lowestRank']
         8
@@ -328,17 +314,30 @@ TODOdoc:
         Traceback (most recent call last):
         ...
         ValueError: A deck with lowest rank "9" is too small for 4 players when dealt 6 card(s) each
+        >>> def factory(game, playerNo):
+        ...   return Player()
+        >>> game = Game(factory)
+        >>> game.lowestCardRank
+        '6'
         """
 
         rank = str(settings['lowestRank'])
         assert rank in cards.CardFace.ranks_() or rank == '11'
         return rank
 
+    lowestCardRank = property(getLowestCardRank)
+
     @cards.game.settingAccessor
-    def setLowestCardRank(self, settings, rank):
+    @staticmethod
+    def setLowestCardRank(settings, rank):
         """
         Change the value of the ``lowestRank`` setting.
 
+        This method will not work on a `Game` instance, since its
+        settings are immutable after construction. That's why the
+        `lowestCardRank` property does not list it as a mutator.
+        You can, however, use this method on standalone settings'
+        maps as long as they are mutable (eg. ``dict``).
 
         Parameters
         ----------
@@ -368,10 +367,6 @@ TODOdoc:
             raise ValueError('A deck with lowest rank "%s" is'
                 ' too small for %d players when dealt %d card(s) each'
                 % (rank, playerCount, settings['cardsPerHand']))
-        if self is not None:
-            self.deckFactory = deckFactory
-
-    lowestCardRank = property(getLowestCardRank, setLowestCardRank)
 
     @cards.game.settingAccessor
     @staticmethod
@@ -470,12 +465,6 @@ TODOdoc:
     # TODO: convert this into a setting
     defaultSuitOrder = ('spades', 'diamonds', 'clubs', 'hearts')
 
-    @property
-    def settings(self):
-        settings = self._settings
-        return settings if isinstance(settings, mapping.ImmutableMap) \
-            else mapping.ImmutableMap(settings)
-
     @classmethod
     def defaults(class_):
         """
@@ -564,16 +553,29 @@ TODOdoc:
         else:
             raise ValueError('invalid rank of a card: %s' % rank)
 
+    def playAgain(self, *args, **kwargs):
+        """
+        Create a new game using this object as a template.
+
+        Delegates to the superclass, then copies the value of
+        `result` property to help determine first attacker in
+        the new game.
+        """
+
+        newGame = super().playAgain(*args, **kwargs)
+        newGame.result = self.result
+        return newGame
+
     def start(self, dealer=None):
         """
         Establish initial state of a game in progress.
         
-        This method establishes initial state of the game by freezing
-        the settings that can't change during the game, dealing
+        This method establishes initial state of the game by dealing
         hands to players, pulling the trump card, preparing the
-        stock, and setting up first turn. It can also be used to
+        stock, and setting up first turn. You can't use it to
         start a new game with the same players when the current game
-        is over.
+        is over; call `playAgain` to create a new `Game` object using
+        this one as a template instead.
 
         Parameters
         ----------
@@ -627,16 +629,12 @@ TODOdoc:
         True
         """
   
-        if self.attacker is not None:
+        if self._turn is not None:
             raise Error(
-                ('A game is in progress at bout #%d,'
-                + ' cannot restart until it ends')
+                'A game is in progress or ended at bout #%d,'
+                ' cannot restart it'
                 % ( self._turn + 1 )
             )
-        # Freeze the settings
-        settings = self._settings
-        if not isinstance(settings, mapping.ImmutableMap):
-            self._settings = mapping.ImmutableMap(settings)
         if dealer is None:
             dealer = cards.Dealer()
         deck = dealer.shuffle(self.deckFactory.makeDeck(), 3)
@@ -803,8 +801,7 @@ TODOdoc:
         Override this method to get notified when a game ends.
         
         This method must not return a value or raise exceptions.
-        Default implementation updates the `gamesPlayed` property.
-        You should call it from overriding methods.
+        Default implementation does nothing.
 
         Parameters
         ----------
@@ -813,7 +810,7 @@ TODOdoc:
             ``None`` if there was a tie.
         """
 
-        self.gamesPlayed += 1
+        pass
 
     def _claimFirstAttack(self, player, lowTrump):
         """
@@ -1179,8 +1176,7 @@ TODOdoc:
                     break
             if not self.players[i].hand:
                 # game over, draw
-                self.fool = self.attacker = None
-                self.gameOver(None)
+                self.result = self.attacker = None
             else:
                 self.attacker = i
                 # a player can defend only if s/he has cards
@@ -1192,11 +1188,9 @@ TODOdoc:
                     # game over, player #i lost
                     winner = self.result[0]
                     self.result = ( winner, i )
-                    self.stats[i] = ( self.stats[i][0], 1 + self.stats[i][1])
-                    self.stats[winner] = ( self.stats[winner][0] + 1,
-                                           self.stats[winner][1])
+                    self.players[i].losses += 1
+                    self.players[winner].wins += 1
                     self.attacker = None
-                    self.gameOver(self.result)
                 else:
                     self.defendant = i
                     self._cardsDefending = len(self.players[i].hand)
@@ -1205,6 +1199,9 @@ TODOdoc:
         if self.attacker is None:
             # end game
             del self._cardsDefending
+            for player in self.players:
+                player._incrGamesPlayed()
+            self.gameOver(self.result)
 
     def _replaceCards(self, player):
         """
@@ -1229,11 +1226,14 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     
     This class implements functions common to various kinds of durak
     players: interactive, robot, test, remote, validation, etc.
-    This is an abstract class.
 
     Attributes
     -----------------
     hand
+    wins
+        Count of games won by this player.
+    losses
+        Count of games lost by this player.
     STATUM
         Tuple containing possible values of the `status`
         property and logical conditions used to fill
@@ -1287,8 +1287,6 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     2
     >>> game.playing
     False
-    >>> game.gamesPlayed
-    0
     >>> class Dealer(cards.Dealer):
     ...  def shuffle(self, deck, times=1):
     ...   return [ deck ]
@@ -1485,19 +1483,60 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
     Hand()
     >>> game.result
     (1, 0)
-    >>> game.stats
-    [(0, 1), (1, 0)]
-    >>> game.gamesPlayed
+    >>> for i in range(len(game.players)):
+    ...  player = game.players[i]
+    ...  print(player.wins, player.losses, player.gamesPlayed)
+    0 1 1
+    1 0 1
+    >>> players = tuple(game.players)
+    >>> game = game.playAgain()
+    >>> players == tuple(game.players)
+    True
+    >>> game.playing
+    False
+    >>> game=game.start(Dealer())
+    >>> game.playing
+    True
+    >>> game.trumpCard
+    CardFace('AH')
+    >>> game.attacker
     1
     """
 
     def __init__(self, *pos, **kw):
         super().__init__(*pos, **kw)
+        self._emptyHand()  
+        self.wins = self.losses = self.modCount = 0
+
+    def _emptyHand(self):
         self._hand = {} # a dictionary of sorted lists
-        cardRank = lambda card: Game.rankKey(card.rank)
+        cardRank = lambda card:Game.rankKey(card.rank)
         for suit in cards.CardFace.suits_():
-            self._hand[suit] = sets.SortedListSet(key = cardRank)  
-        self.modCount = 0
+            self._hand[suit] = sets.SortedListSet(key=cardRank)
+
+
+    def _detachFromGame(self):
+        """
+        Clear the host `Game` object reference.
+
+        Delegates to the superclass, then clears the player's hand.
+
+        Returns
+        -------
+        Player
+            this object after it's detached
+
+        Raises
+        ------
+        RuntimeError
+            when an attempt is made to detach player from a
+            `Game` in progress.
+        """
+
+        super()._detachFromGame()
+        self._emptyHand()
+        self.modCount += 1
+        return self
 
     STATUM = (
         ('collecting', lambda game, index: game.defendant == index and index in game._quits),

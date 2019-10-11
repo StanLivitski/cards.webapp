@@ -373,7 +373,7 @@ class IntroView(ViewWithEvents):
             not args and
             checkIn is not None and
             checkIn.id == gameId and
-            checkIn.game is None and
+            (checkIn.game is None or not checkIn.game.playing) and
             playerId in checkIn.tokens
         )
         if passed:
@@ -462,7 +462,7 @@ class IntroView(ViewWithEvents):
                 self.cometyDispatcher = self.cometyDispatcherFor(request, *args)
                 self.cometyDispatcher.registerUser(token, False)
                 target = None
-                if checkIn.game is not None:
+                if checkIn.game is not None and checkIn.game.playing:
                     # if the game is on, send re-joining player to the table
                     target = django.urls.reverse('table')
                 elif args:

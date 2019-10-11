@@ -280,7 +280,7 @@ class ChatView(ViewWithEvents):
 #            not args and
             checkIn is not None and
             checkIn.id == gameId and
-            checkIn.game is None and
+#            checkIn.game is None and   # chat may be used during the game play
             playerId is not None and
             playerId in checkIn.tokens
         )

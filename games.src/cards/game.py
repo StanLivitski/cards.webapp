@@ -52,6 +52,7 @@
 """
 import abc
 import collections
+import mapping
 
 def settingAccessor(callable_):
     """
@@ -96,12 +97,16 @@ def settingAccessor(callable_):
     >>> class TestGame(Game):
     ...  def start(self):
     ...   return self
+    ...  @property
+    ...  def playing(self):
+    ...   return False
     ...  def createPlayer(self, seat):
     ...   return Player()
     ...  @classmethod
     ...  def getPlayerClass(class_):
     ...   return Player
-    >>> playerCount(TestGame())
+    >>> game = TestGame()
+    >>> playerCount(game)
     2
     >>> playerCount({'players' : 5})
     5
@@ -193,13 +198,12 @@ class Game(object, metaclass=abc.ABCMeta):
 
     Attributes
     ----------
-    settings : abc.Mapping
+    settings : mapping.ImmutableMap
         Effective values of this game's settings supplied via its
-        constructor or `defaults`(). This mapping is mutable by
-        default, but may be made immutable at the discretion of a
-        subclass depending on the object's state.
+        constructor or `defaults`().
     players : collections.Sequence
         A list of players in this game.
+    playing
     [ # or # <name_of_a_property_having_its_own_docstring>
     ...]
 
@@ -209,6 +213,8 @@ class Game(object, metaclass=abc.ABCMeta):
         Override to return default settings for a game.
     start()
         Override to set up initial state of a game within this object.
+    playing() : boolean
+        Override to tell whether a game is in progress at the moment.
 [    <name>([<param>, ...])
         <One-line description of a method to be emphasized among many others.>
 ]
@@ -238,10 +244,27 @@ class Game(object, metaclass=abc.ABCMeta):
     section if citing any references.>
     ]
 
-[   Examples
-    ----------------
-    <In the doctest format, illustrate how to use this class.>
-     ]
+    Examples
+    --------
+    >>> class TestGame(Game):
+    ...  def start(self):
+    ...   return self
+    ...  @property
+    ...  def playing(self):
+    ...   return False
+    ...  def createPlayer(self, seat):
+    ...   return Player()
+    ...  @classmethod
+    ...  def getPlayerClass(class_):
+    ...   return Player
+    >>> game = TestGame(players = 5)
+    >>> str(game)
+    'TestGame with 5 player(s)'
+    >>> game.players[0].game == game
+    True
+    >>> game.players[0]._detachFromGame()
+    >>> game.players[0].game is None
+    True
     """
 
     def __init__(self, playerFactory = None, **userSettings):
@@ -285,7 +308,8 @@ class Game(object, metaclass=abc.ABCMeta):
                         )
                     )
                 self.players[seat] = player
-        self._settings = settings
+        # Make settings immutable
+        self._settings = mapping.ImmutableMap(settings)
         # Check player objects and attach them to the game
         seat = 0
         for player in self.players:
@@ -301,6 +325,41 @@ class Game(object, metaclass=abc.ABCMeta):
             seat += 1
         del self.playerFactory
         # TODO: more initialization work
+
+    def playAgain(self, *args, **kwargs):
+        """
+        Create a new game using this object as a template.
+
+        This method creates a new game object and copies its
+        settings and players from this one, except for those
+        overwritten by the arguments or supplied by ``playerFactory``.
+        The arguments should follow the pattern defined for
+        the constructor. Superclasses adding or changing constructor
+        arguments should override this method and handle similar
+        arguments here as well. References to the copied player
+        objects are retained herein, as it is presumed that
+        this object is no longer used and will soon be discarded.
+        """
+
+        if 'playerFactory' in kwargs:
+            playerFactory = kwargs.pop('playerFactory')
+        elif 0 < len(args):
+            playerFactory = args[0]
+            args = args[1:]
+        else:
+            playerFactory = lambda game, seat: None
+        def factory(game, seat):
+            nonlocal self, playerFactory
+            player = playerFactory(game, seat)
+            if player is None:
+                player = self.players[seat]
+            return player
+        settings = dict(self.settings)
+        settings.update(kwargs)
+        for player in self.players:
+            player._detachFromGame()
+        newGame = type(self)(playerFactory = factory, *args, **settings)
+        return newGame
 
     def createPlayer(self, seat):
         """
@@ -438,6 +497,40 @@ class Game(object, metaclass=abc.ABCMeta):
     
         raise NotImplementedError()
 
+    @property
+    @abc.abstractmethod
+    def playing(self):
+        """
+        Flag telling whether a game is in progress at the moment.
+
+        Override this method to report a game is in progress.
+        Default implementation returns ``False``.
+
+        Returns
+        -------
+        boolean
+            Whether a game is currently played.
+        """
+
+        return False
+
+    def gameOver(self, result):
+        """
+        Call this method to notify a subclass when a game ends.
+        Override it to get notified when a game ends.
+        
+        This method must not return a value or raise exceptions.
+        Default implementation does nothing.
+
+        Parameters
+        ----------
+        result : object | None
+            A value of unspecified type, or ``None``, that conveys
+            the game's result.
+        """
+
+        pass
+
 
 class Player:
     """
@@ -457,6 +550,7 @@ class Player:
     -----------------
     name
     game
+    gamesPlayed
 [
     <var>[, <var>] : <type | value-list>
         <Description of an attribute>
@@ -468,12 +562,6 @@ class Player:
         <One-line description of a method to be emphasized among many others.>
 ]
 
-
-    Returns
-    -------
-    <type | value-list>
-        <Description of return value>
-    ...
 
 [    Raises
     ----------
@@ -497,6 +585,7 @@ class Player:
     def __init__(self):       
         self._game = None
         self._name = None
+        self._gamesPlayed = 0
         # TODO: more
 
     def __str__(self):
@@ -504,6 +593,38 @@ class Player:
             'new player' if self.game is None else 
             'player #%d' % self.seat
         ) + ( ': ' + self.name if self.name is not None else '' )
+
+    def _detachFromGame(self):
+        """
+        Clear the host `Game` object reference.
+
+        This method should only be called by the host `Game`
+        or its successor that also clears or updates inverse
+        ``Player`` reference.
+
+        Returns
+        -------
+        Player
+            this object after it's detached
+
+        Raises
+        ------
+        RuntimeError
+            when an attempt is made to detach player from a
+            `Game` in progress
+
+        See Also
+        --------------
+        Game.playing : property of the game object disallowing
+            this operation when set
+        """
+
+        if self._game is not None and self._game.playing:
+            raise RuntimeError(
+                'Attempt to detach %s from active %s' %
+                 (self, self._game))
+        self._game = None
+        return self
 
     def attachToGame(self, game):
         """
@@ -546,6 +667,27 @@ class Player:
         return self._game
 
     game = property(getGame, attachToGame)
+
+    @property
+    def gamesPlayed(self):
+        """
+        Count of games played by this player.
+        
+
+        Returns
+        -------
+        int
+            The number of games played by this player.
+        """
+
+        return self._gamesPlayed
+
+    def _incrGamesPlayed(self):
+        """
+        Increment the number of games played by this player.
+        """
+
+        self._gamesPlayed += 1
 
     @property
     def seat(self):

@@ -972,7 +972,7 @@ class PlayerCheckIn:
                 )
         game = self._gameType(None, uiDispatcher=self.uiDispatcher, **settings)
         game.start()
-        self._settings = settings
+        self._settings = settings # freezes settings as a side-effect
         self._game = game
         cls = type(self)
         if getattr(cls, '_activeFacilityId', None) == self.id:
