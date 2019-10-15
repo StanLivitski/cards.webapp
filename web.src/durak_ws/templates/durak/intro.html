@@ -23,6 +23,7 @@
 
 {% load i18n %}
 {% load staticfiles %}
+{% load collections %}
 
 {% block title %}{% trans "Start a Durak game" %}{% endblock %}
 
@@ -53,6 +54,7 @@
        		case "player-status":
        			var playerNo = events[0][1].index;
        			var status = events[0][1].status;
+       			var statusCode = events[0][1].code;
         		var form = $(".form-player").eq(playerNo);
         		if (1 == form.length)
         			form.find("span.text-info").last().text(status);
@@ -64,8 +66,9 @@
         			return defaultHandler(events, loopParams);
         		}
         		PLAYER_INFO[playerNo].status = status;
+        		PLAYER_INFO[playerNo].statusCode = statusCode;
     			if (null != onUserInfoChange)
-    				onUserInfoChange();
+    				onUserInfoChange(playerNo);
         		return 1;
        		case "player-update":
        			var playerNo = events[0][1].index;
@@ -90,7 +93,7 @@
        			oldPanel.replaceWith(newPanel);
        			initForms(newPanel);
     			if (null != onUserInfoChange)
-    				onUserInfoChange();
+    				onUserInfoChange(playerNo);
         		return 1;
         	default:
         		return defaultHandler.apply(this, arguments);
@@ -269,8 +272,6 @@
   </div>
 </div>
 	{% endif %}
-<div class="row">
-<div class="col-xs-12" id="panel-players"></div>
 
 <script type="text/javascript"><!--
 	var PLAYER_INFO = [
@@ -280,7 +281,11 @@
     		name: {% if playerInfo.1 %}"{{ playerInfo.1|escapejs }}"{% else %}null{% endif %},
     		status: {% if forloop.counter0 == playerNo %}{% comment %}
     			{% endcomment %}"{% trans "you" context "player status" %}"{% comment %}
-        		{% endcomment %}{% else %}"{{ playerInfo.2 }}"{% endif %}
+        		{% endcomment %}{% else %}"{{ playerInfo.2 }}"{% endif %},
+       		statusCode: {{ playerInfo.3 }},
+       		played: {{ playerInfo.4 }},
+       		wins: {{ playerInfo.5 }},
+       		losses: {{ playerInfo.6 }},
     	},
     {% endfor %}
 	];
@@ -316,7 +321,7 @@
 			PLAYER_INFO[seat].name = text;
 			changeRequest = undefined;
 			if (null != onUserInfoChange)
-				onUserInfoChange();
+				onUserInfoChange(seat);
 		})
 		.fail(function(jqXHR, textStatus, errorThrown)
 		{
@@ -341,7 +346,7 @@
 			});
 			form.prepend(CSRF_TOKEN_CONTROL.clone());
 			if (0 == seat)
-				form.attr('class', "form-player col-xs-12 col-sm-8 col-md-10");
+				form.attr('class', "form-player col-xs-8 col-md-10");
 		}
 		var inputGroup = $(
 			'<div class="input-group">'
@@ -380,8 +385,8 @@
 	function renderInvitationForm(i, player)
 	{
 		var form = $(
-			'<div class="panel-body"><form id="form-invite" target="_blank">'
-			+ '<label for="input-invite-url-'+ i + '"/>'
+			'<form id="form-invite-' + i + '" target="_blank">'
+			+ '<label for="input-invite-url-' + i + '"/>'
 			+ '<div class="col-xs-11" style="padding: 0;">'
 			+ '<input type="text" class="form-control" id="input-invite-url-' + i
 			+ '" readonly/></div>'
@@ -393,7 +398,7 @@
 			+ '<span class="glyphicon glyphicon-download-alt" aria-hidden="true"></span>'
 			+ '<span class="sr-only">{% trans "Download" %}</span>'
 			+ '</button></div>'
-			+ '</form></div>',
+			+ '</form>',
 			document);
 		form.find('input').first().val("{{ URLPrefix }}{% url 'intro' '' %}" + player.id);
 		form.find('label').first().text(
@@ -401,8 +406,23 @@
 			? INVITE_LABEL_UNNAMED_FORMAT.format(i + 1)
 			: INVITE_LABEL_NAMED_FORMAT.format(player.name)
 		);
+		if (2 == player.statusCode)
+			form.addClass('hidden');
 		return form;
 	}
+
+	(function() {
+		var oldUserInfoChange = onUserInfoChange;
+		onUserInfoChange = function(playerNo) {
+			form = $('#form-invite-' + playerNo);
+			if (2 != PLAYER_INFO[playerNo].statusCode)
+				form.removeClass('hidden');			
+			else if (!form.hasClass('hidden'))
+				form.addClass('hidden');
+			if (null != _oldUserInfoChange)
+				oldUserInfoChange.apply(this, arguments);
+		};
+	})();
 
 	var ready = {% if checkin.ready %}true{% else %}false{% endif %};
 
@@ -440,8 +460,8 @@
 	{
 		var form = $(
 			'<form method="POST" id="form-start"'
-			+ 'class="col-xs-8 col-xs-offset-2 col-sm-offset-0 col-sm-4 col-md-2">'
-			+ '<button name="action" style="overflow: hidden"'
+			+ 'class="col-xs-4 col-md-2">'
+			+ '<button name="action" style="overflow: hidden; height: 6em;"'
 			+ '  class="form-control btn btn-primary" value="game-start">'
 			+ '{% trans "Start game" %}</button>'
 			+ '</form>',
@@ -462,13 +482,82 @@
 			panel.addClass('row');
 			panel.css('background', 'transparent');
 		}
-		panel.append(renderPlayerNameForm(i, player));
+		var name_form = renderPlayerNameForm(i, player); 
+		panel.append(name_form);
+		{% if playerNo == 0 %}(0 == i ? name_form : panel).
+		 {% else %}panel.{% endif %}append('<div class="panel-body"></div>');
+		pbody = panel.find(".panel-body:last");
+		pbody.append({% blocktrans trimmed %}
+			'<span class="stats text-info">Played '
+			+ '<span class="played">0</span> game(s), '
+			+ '<span class="wins">0</span> win(s), '
+			+ '<span class="losses">0</span> loss(es).</span>'
+			{% endblocktrans %});
+		pbody.find(".stats span").each(function() {
+			span = $(this);
+			cls = span.attr('class');
+			if (cls in player)
+				span.text(player[cls]);
+		})
 		{% if playerNo == 0 %}
-		panel.append(i == 0 ? renderStartForm() : renderInvitationForm(i, player));
+		if (i == 0)
+			panel.append(renderStartForm());
+		else
+			pbody.append(renderInvitationForm(i, player));
 		{% endif %}
 		return panel;
 	}
 
+	{% if checkin.game %}
+    $(function () {
+  	{% if checkin.game.result %}
+     {% with players=checkin.game.players %}
+     {% with winnerAt=checkin.game.result.0 looserAt=checkin.game.result.1 %}
+     {% with winner=players|get:winnerAt looser=players|get:looserAt %}
+		var result = {
+			'winner': [ '{{ winner.name|default_if_none:""|escapejs }}', {{ winnerAt }} ],
+			'looser': [ '{{ looser.name|default_if_none:""|escapejs }}', {{ looserAt }} ],
+		}
+		for (var class_ in result)
+		{
+			var player = result[class_];
+			var name = player[0] ? player[0] : NAME_STUB_FORMAT.format(player[1] + 1);
+			$(".last-game").find("." + class_).text(name);
+		}
+     {% endwith %}
+     {% endwith %}
+     {% endwith %}
+  	{% else %}
+  		$(".jumbotron.last-game").html(
+  		'<h1><small>{% trans 'The game was tied.' %}</small></h1>');
+  		$(".well.last-game").html('Last game was a tie.');
+ 	{% endif %}
+		$(".jumbotron.last-game").append('<p>'
+		+ '<a class="btn btn-primary btn-lg" href="#" role="button">'
+		+ '{% trans 'Proceed' %}</a></p>'
+        ).removeClass('hidden');
+		function shrinkMessage() {
+    		$(".jumbotron.last-game").addClass('hidden');
+    		$(".well.last-game").removeClass('hidden');
+    	}
+    	$(".jumbotron.last-game a").click(shrinkMessage);
+    	$(window).one("scroll", shrinkMessage);
+    });
+	{% endif %}
+// --></script>
+<header class="jumbotron last-game hidden">
+  <h1><small>{% trans "Congratulations," %}</small><br />
+  <span class="text-success">{% trans '<span class="winner"></span> you won!' %}</span></h1>
+  <h2 class="text-info">{% trans '<span class="looser"></span> lost.' %}</h2>
+</header>
+<p class="well well-sm text-info last-game hidden">
+{% trans 'Last game: <span class="winner"></span> won; <span class="looser"></span> lost.' %}
+</p>
+
+<div class="row">
+	<div class="col-xs-12" id="panel-players"></div>
+</div>
+<script type="text/javascript"><!--
 	(function (playerInfo, container) {
 		for (var i=0; i<playerInfo.length; i++)
 		{
@@ -477,8 +566,8 @@
 		}
 		initForms();
 	})(PLAYER_INFO, $("#panel-players"));
-	// --></script>
-</div>
+// --></script>
+
 <div class="row">
 	<div class="col-xs-12{% if playerNo == 0 %} col-md-5{% endif %}">
 		<div class="panel panel-default tab-content">
@@ -689,7 +778,7 @@
 		</div>
 	</div>
 	<div class="{% if playerNo == 0 %}col-md-7 visible-md visible-lg
-			{% else %}hidden-sm hidden-md hidden-lg{% endif %}">
+			{% else %}hidden{% endif %}">
 		<div class="panel panel-default">
 			<div class="panel-heading visible-md visible-lg">{% trans "Messages" %}</div>
 			<div id="panel-body-messages" class="panel-body embed-responsive chat-container">

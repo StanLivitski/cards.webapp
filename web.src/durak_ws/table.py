@@ -107,7 +107,7 @@ class TableView(ViewWithEvents):
         passed = (
             checkIn is not None and
             checkIn.id == gameId and
-            checkIn.game is not None and
+            checkIn.game and checkIn.game.playing and
             playerId is not None and
             playerId in checkIn.tokens
         )

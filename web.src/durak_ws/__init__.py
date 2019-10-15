@@ -26,6 +26,10 @@ front-ends.
 
 This module contains the application-wide configuration. 
 """
+import version
+
+version.requirePythonVersion(3, 3)
+
 import importlib
 import logging
 import os.path

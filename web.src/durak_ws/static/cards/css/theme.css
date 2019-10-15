@@ -38,6 +38,7 @@ html, body
 
 .panel-body, .modal-content {
     color: black !important;
+	background-color: #ffffff;
 }
 
 .message {

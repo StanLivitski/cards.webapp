@@ -31,6 +31,7 @@ from django.http.response import \
 from django.shortcuts import render
 from django.utils.translation import ugettext as _
 
+import callables
 import mapping
 from comety.django.views import ViewWithEvents
 
@@ -53,8 +54,7 @@ class IntroView(ViewWithEvents):
 
     updateMode = False
 
-    @staticmethod
-    def player_name_set(name, request):
+    def player_name_set(self, name, request):
         """
         Receives updates to ``player-name`` field.
 
@@ -74,10 +74,9 @@ class IntroView(ViewWithEvents):
         """
 
         token = request.session[IntroView.PLAYER_IN_SESSION]
-        PlayerCheckIn.ACTIVE_FACILITY().updatePlayer(token, name = name)
+        self.checkIn.updatePlayer(token, name = name)
 
-    @staticmethod
-    def settings_players_set(setting, request):
+    def settings_players_set(self, setting, request):
         """
         Receives updates to ``settings-players`` field. 
         
@@ -98,10 +97,10 @@ class IntroView(ViewWithEvents):
             invalid argument values. 
         """
 
-        PlayerCheckIn.ACTIVE_FACILITY().capacity = int(setting)
+        self.checkIn.capacity = int(setting)
 
-    @staticmethod
-    def settings_lowestCardRank_set(setting, request):
+
+    def settings_lowestCardRank_set(self, setting, request):
         """
         Receives updates to ``settings-lowestCardRank`` field. 
         
@@ -122,10 +121,9 @@ class IntroView(ViewWithEvents):
             invalid argument values. 
         """
 
-        PlayerCheckIn.ACTIVE_FACILITY().lowestCardRank = int(setting)
+        self.checkIn.lowestCardRank = int(setting)
 
-    @staticmethod
-    def settings_connectToAddress_set(setting, request):
+    def settings_connectToAddress_set(self, setting, request):
         """
         Receives updates to ``settings-connectToAddress`` and
         ``settings-connectToOther`` fields. 
@@ -151,18 +149,17 @@ class IntroView(ViewWithEvents):
             invalid argument values. 
         """
 
-        checkIn = PlayerCheckIn.ACTIVE_FACILITY()
         if type(setting) is not str:
             raise TypeError(
                 'Unexpected `settings-connectToAddress` value of %s'
                 % type(setting)
             )
         elif setting.isdigit():
-            checkIn.host = int(setting)
-            checkIn.port = None
+            self.checkIn.host = int(setting)
+            self.checkIn.port = None
         elif setting.startswith(':'):
-            checkIn.host = setting[1:]
-            checkIn.port = None
+            self.checkIn.host = setting[1:]
+            self.checkIn.port = None
         elif not setting:
             hostport = request.POST['settings-connectToOther']
             if type(hostport) is not str:
@@ -188,8 +185,8 @@ class IntroView(ViewWithEvents):
                     'Invalid `settings-connectToOther` value: %s'
                     % repr(hostport)
                 )
-            checkIn.host = host
-            checkIn.port = port
+            self.checkIn.host = host
+            self.checkIn.port = port
         else:
             raise ValueError(
                 'Unexpected `settings-connectToAddress` value: %s'
@@ -278,21 +275,13 @@ class IntroView(ViewWithEvents):
         """
 
         handler = self.ACTIONS_HANDLERS.get(action)
-        # A hack to dereference @staticmethod decorators 
-        if isinstance(handler, staticmethod):
-            handler = handler.__func__
-        # A hack to bind instance method handlers 
-        elif hasattr(handler, '__code__') and 1 < handler.__code__.co_argcount:
-            handler = getattr(self, handler.__name__)
-        result = None
-        if callable(handler):
+        if handler is not None:
             try:
-                result = handler(request)
+                return callables.call(handler, globals(), self, request)
             except:
                 log = logging.getLogger(type(self).__module__)
                 log.error('Error processing action "%s"',
                           action, exc_info=True)
-        return result
 
     def post(self, request, *args, **kwargs):
         if self._isRequestAdmitted(request, *args):
@@ -305,15 +294,12 @@ class IntroView(ViewWithEvents):
                     if 1 == len(setting): 
                         setting = setting[0]
                     handler = self.SETTINGS_HANDLERS.get(param[len(prefix):])
-                    # A hack to dereference @staticmethod decorators 
-                    if isinstance(handler, staticmethod):
-                        handler = handler.__func__
                 elif param == 'player-name':
                     setting = request.POST[param]
                     handler = self.player_name_set
-                if callable(handler):
+                if handler is not None:
                     try:
-                        handler(setting, request)
+                        callables.call(handler, globals(), self, setting, request)
                     except:
                         log = logging.getLogger(type(self).__module__)
                         log.error('Error processing POST parameter "%s" = "%s"',
@@ -373,11 +359,12 @@ class IntroView(ViewWithEvents):
             not args and
             checkIn is not None and
             checkIn.id == gameId and
-            (checkIn.game is None or not checkIn.game.playing) and
+            (not checkIn.game or not checkIn.game.playing) and
             playerId in checkIn.tokens
         )
         if passed:
             self.heartbeat(playerId)
+            self.checkIn = checkIn
         return passed
 
     def _admitRequest(self, request, *args):
@@ -462,7 +449,7 @@ class IntroView(ViewWithEvents):
                 self.cometyDispatcher = self.cometyDispatcherFor(request, *args)
                 self.cometyDispatcher.registerUser(token, False)
                 target = None
-                if checkIn.game is not None and checkIn.game.playing:
+                if checkIn.game and checkIn.game.playing:
                     # if the game is on, send re-joining player to the table
                     target = django.urls.reverse('table')
                 elif args:

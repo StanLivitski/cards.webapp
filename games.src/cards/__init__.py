@@ -60,7 +60,7 @@ import comety
 import mapping
 import version
 
-version.requirePythonVersion(3)
+version.requirePythonVersion(3, 3)
 
 class CardFace(collections.Hashable, comety.JSONSerializable):
     """

@@ -54,7 +54,9 @@ import abc
 import collections
 import mapping
 
-def settingAccessor(callable_):
+from callables import prepare_call
+
+def settingAccessor(globals_ = {}):
     """
     Decorator of a callable that fetches or computes values based on
     a game's `settings`.
@@ -63,7 +65,7 @@ def settingAccessor(callable_):
     as its first (or second, in case of non-static methods) argument.
     The result is a method that substitutes the value
     of the `Game.settings` attribute for that argument when it receives
-    a `Game` instance. Annotated methods may also be called with
+    a `Game` instance. Decorated methods may also be called with
     `settings` as the binding object, in which case the method's
     code will receive ``None`` as the first argument. Accessors
     that gracefully handle such calls will be able to work on
@@ -71,16 +73,30 @@ def settingAccessor(callable_):
     
     Parameters
     ----------
-    callable_ : object
+    globals_ : collections.Mapping
+        The dictionary of the module defining the target callable,
+        or the local dictionary for the scope in which the target callable's
+        container is defined. If the container has not yet been defined
+        (e.g. when processing a decorator) this mapping should also contain
+        its future qualified name mapped to the ``object`` type value.
+        This argument may be omitted when decorating static, class, and
+        bound methods. 
+    
+    Other parameters
+    ----------------
+    callable_ : callable
         A callable object, such as a function or static method,
         that fetches or computes values based on a game's `settings`.
         Its sole argument should be a `collections.Mapping`.
+        When the decorator is called without parentheses, this is
+        its sole argument, and ``globals_`` is assumed to be empty.
 
     Returns
     -------
     function
         A method that can be used as settings-based property accessor
-        here or in a subclass. Returned method will accept a `Game`
+        here or in a subclass, or a decorator that produces such method.
+        Resulting unbound method will accept a `Game`
         or a `collections.Mapping` as its sole argument, and raise a
         `TypeError` when it receives something different
 
@@ -91,7 +107,7 @@ def settingAccessor(callable_):
 
     Examples
     --------
-    >>> @settingAccessor
+    >>> @settingAccessor(globals())
     ... def playerCount(settings):
     ...  return settings['players']
     >>> class TestGame(Game):
@@ -115,50 +131,41 @@ def settingAccessor(callable_):
     ...
     TypeError: A @settingAccessor cannot accept an argument of type NoneType
     """
-    # A hack to dereference @staticmethod and @classmethod decorators
-    selfNeeded = None
-    if not callable(callable_) and hasattr(callable_, '__func__'):
-        selfNeeded = isinstance(callable_, classmethod)
-        callable_ = callable_.__func__
-    if not callable(callable_):
-        raise TypeError('Argument of type %s is not callable'
-                        % type(callable_).__name__)
-    if selfNeeded is None:
-        prefix = callable_.__qualname__[:-len(callable_.__name__)]
-        if prefix:
-            assert '.' == prefix[-1]
-            prefix = prefix[:-1]
-            try:
-                selfNeeded = isinstance(eval(prefix), type)
-            except:
-                selfNeeded = False
+
+    def with_globals(callable_):
+        callable_, selfNeeded = prepare_call(callable_, globals_)
+        if selfNeeded:
+            def accessorFunction(selfOrSettings, *args, **kwargs):
+                if isinstance(selfOrSettings, Game):
+                    return callable_(selfOrSettings, selfOrSettings._settings, *args, **kwargs)
+                elif isinstance(selfOrSettings, collections.Mapping):
+                    return callable_(None, selfOrSettings, *args, **kwargs)
+                else:
+                    raise TypeError(
+                        'A @settingAccessor cannot accept an argument of type %s'
+                        % type(selfOrSettings).__name__)
         else:
-            selfNeeded = False
-    if selfNeeded:
-        def accessorFunction(selfOrSettings, *args, **kwargs):
-            if isinstance(selfOrSettings, Game):
-                return callable_(selfOrSettings, selfOrSettings._settings, *args, **kwargs)
-            elif isinstance(selfOrSettings, collections.Mapping):
-                return callable_(None, selfOrSettings, *args, **kwargs)
-            else:
-                raise TypeError(
-                    'A @settingAccessor cannot accept an argument of type %s'
-                    % type(selfOrSettings).__name__)
+            def accessorFunction(selfOrSettings, *args, **kwargs):
+                if isinstance(selfOrSettings, Game):
+                    return callable_(selfOrSettings._settings, *args, **kwargs)
+                elif isinstance(selfOrSettings, collections.Mapping):
+                    return callable_(selfOrSettings, *args, **kwargs)
+                else:
+                    raise TypeError(
+                        'A @settingAccessor cannot accept an argument of type %s'
+                        % type(selfOrSettings).__name__)
+        if '__name__' in dir(callable_):
+            accessorFunction.__name__ = callable_.__name__
+        if '__doc__' in dir(callable_):
+            accessorFunction.__doc__ = callable_.__doc__
+        return accessorFunction
+    if isinstance(globals_, collections.Mapping):
+        return with_globals
     else:
-        def accessorFunction(selfOrSettings, *args, **kwargs):
-            if isinstance(selfOrSettings, Game):
-                return callable_(selfOrSettings._settings, *args, **kwargs)
-            elif isinstance(selfOrSettings, collections.Mapping):
-                return callable_(selfOrSettings, *args, **kwargs)
-            else:
-                raise TypeError(
-                    'A @settingAccessor cannot accept an argument of type %s'
-                    % type(selfOrSettings).__name__)
-    if '__name__' in dir(callable_):
-        accessorFunction.__name__ = callable_.__name__
-    if '__doc__' in dir(callable_):
-        accessorFunction.__doc__ = callable_.__doc__
-    return accessorFunction
+        target = globals_
+        globals_ = {}
+        return with_globals(target)
+        
 
 class Game(object, metaclass=abc.ABCMeta):
     """
@@ -262,7 +269,8 @@ class Game(object, metaclass=abc.ABCMeta):
     'TestGame with 5 player(s)'
     >>> game.players[0].game == game
     True
-    >>> game.players[0]._detachFromGame()
+    >>> game.players[0] is game.players[0]._detachFromGame()
+    True
     >>> game.players[0].game is None
     True
     """
@@ -738,8 +746,9 @@ class Player:
             player attached to a `Game` 
         """
 
-        if self.game is not None:
-            raise AttributeError('Cannot change name of %s to %s'
+        if self.game and self.game.playing:
+            raise AttributeError(
+                'Cannot change name from %s to %s while playing'
                 % (self, name))
         self._name = name
 

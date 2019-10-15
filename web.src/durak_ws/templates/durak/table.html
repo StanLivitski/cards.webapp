@@ -39,12 +39,6 @@
         	switch (events[0][1].event)
        		{
        		case "game-over":
-       			alert(
-       				"Game over, " + (
-       					null == events[0][1]['result'] ? 'draw.'
-       						: 'player ' + (1 + events[0][1].result[0]) + ' won; '
-       						+ 'player ' + (1 + events[0][1].result[1]) + ' lost.')
-       			);
         		location.replace("{% url 'intro' %}");
         		return 0;
        		// case "play":

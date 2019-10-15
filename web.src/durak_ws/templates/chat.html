@@ -223,7 +223,7 @@
     	{
     		updateRecipients();
 			if (null != oldUserInfoChange)
-				oldUserInfoChange();
+				oldUserInfoChange.apply(this, arguments);
     	};
     })();
     $(updateRecipients);

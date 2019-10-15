@@ -1701,7 +1701,7 @@ class Player(cards.game.Player, metaclass=abc.ABCMeta):
         if isinstance(cards_, collections.Iterable):
             for card in cards_:
                 self._receiveCards(card)
-            if self.game is not None and self.game.attacker is None:
+            if self.game and self.game.attacker is None:
                 trumps = self._hand[self.game.trumpCard.suit]
                 if trumps:
                     self.game._claimFirstAttack(self, next(iter(trumps)))

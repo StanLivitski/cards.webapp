@@ -20,6 +20,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+from sys import exc_info
 """
     Classes that implement check-in of players via this web
     application and connect interactive players to the game
@@ -63,6 +64,7 @@ import random
 import socket
 import sys
 import threading
+
 import netifaces
 
 from django.utils.translation import ugettext_lazy as _
@@ -827,7 +829,8 @@ class PlayerCheckIn:
         self.uiDispatcher.postEvent(self,
             event = self.PLAYER_STATUS_EVENT,
             index = playerNo,
-            status = _(status)
+            status = _(status),
+            code = self.PLAYER_STATA_CODES[status]
         )
         ready = self.ready
         if wasReady != ready:
@@ -970,9 +973,12 @@ class PlayerCheckIn:
                 'Not ready to start the game: player(s) %s are missing'
                 % [ i for i in range(len(players)) if players[i] is None ]
                 )
-        game = self._gameType(None, uiDispatcher=self.uiDispatcher, **settings)
+        if self._game is None:
+            game = self._gameType(None, uiDispatcher=self.uiDispatcher, **settings)
+        else:
+            game = self._game.playAgain(None, uiDispatcher=self.uiDispatcher, **settings)
+        #self._settings = settings # freezes settings as a side-effect
         game.start()
-        self._settings = settings # freezes settings as a side-effect
         self._game = game
         cls = type(self)
         if getattr(cls, '_activeFacilityId', None) == self.id:
@@ -1428,8 +1434,8 @@ class PlayerCheckIn:
         
         Yields
         ------
-        Tuples with ``(token, name, localizedStatus, statusCode)``
-        values for each invited player.
+        Tuples with ``(token, name, localizedStatus, statusCode) +``
+        ``(gamesPlayed, wins, losses)`` values for each invited player.
 
         A tuple will contain `False` within its second element
         `name` if the player has not yet entered his/her name. 
@@ -1450,13 +1456,18 @@ class PlayerCheckIn:
                 legend = 'expected'
             else:
                 legend = 'joined'
+            stats = (0,) * 3 if player is None else (
+                player.gamesPlayed,
+                player.wins,
+                player.losses
+            )
             code = (self.PLAYER_STATA_CODES[legend])
             yield (
                 info[0],
                 False if player is None or player.name is None else player.name,
                 self.LOCALIZED_PLAYER_STATA[code],
                 code
-            )
+            ) + stats
 
     @property
     def ready(self):
@@ -2072,7 +2083,7 @@ class WebGame(cards.durak.Game, DropBox):
             or ``None`` if there was no exception.
         """
 
-        if exception is None:
+        if exception is None and self.playing:
             try:
                 target = message.args[0]
                 cards_ = message.args[1] if 1 < len(message.args) else None
@@ -2113,6 +2124,14 @@ class WebGame(cards.durak.Game, DropBox):
         super().gameOver(result)
         self.uiDispatcher.postEvent(self, event = self.GAME_OVER_EVENT,
                                     result = result)
+        try:
+            self.discard()
+        except:
+            log = logging.getLogger(type(self).__module__)
+            log.error(
+                'Error shutting down message delivery for %s',
+                self, exc_info = True
+            )
 
 class RemoteEntity:
     """
