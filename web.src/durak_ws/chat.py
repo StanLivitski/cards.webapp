@@ -277,10 +277,8 @@ class ChatView(ViewWithEvents):
         checkIn = None if gameId is None else PlayerCheckIn.FACILITIES.get(gameId)
         playerId = request.session.get(self.PLAYER_IN_SESSION)
         passed = (
-#            not args and
             checkIn is not None and
             checkIn.id == gameId and
-#            checkIn.game is None and   # chat may be used during the game play
             playerId is not None and
             playerId in checkIn.tokens
         )

@@ -51,6 +51,7 @@ class IntroView(ViewWithEvents):
     GAME_IN_SESSION = durak_ws.__name__ + '_game_id'
     PLAYER_IN_SESSION = durak_ws.__name__ + '_player_id'
     ERROR_IN_SESSION = durak_ws.__name__ + '_error'
+    SHOW_RESULT_IN_SESSION = durak_ws.__name__ + '_show_result'
 
     updateMode = False
 
@@ -359,9 +360,10 @@ class IntroView(ViewWithEvents):
             not args and
             checkIn is not None and
             checkIn.id == gameId and
-            (not checkIn.game or not checkIn.game.playing) and
             playerId in checkIn.tokens
         )
+        if passed and not self.updateMode:
+            passed = not checkIn.game or not checkIn.game.playing
         if passed:
             self.heartbeat(playerId)
             self.checkIn = checkIn
@@ -520,6 +522,7 @@ class IntroView(ViewWithEvents):
                 'playerNo' : playerNo,
                 'URLPrefix' : self.getURLPrefix(request, checkIn, defaultPort),
                 'error' : request.session.get(self.ERROR_IN_SESSION),
+                'showBanner' : request.session.get(self.SHOW_RESULT_IN_SESSION, False),
             }
             response = render(request, 'durak/intro.html', contextVars,
 #            RequestContext(request,

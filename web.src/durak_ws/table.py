@@ -76,7 +76,10 @@ class TableView(ViewWithEvents):
                     django.urls.reverse('intro')
                 ))
         elif self.updateMode:
-            return super().get(request, *args, **kwargs)
+            response = super().get(request, *args, **kwargs)
+            if self.checkIn.game and not self.checkIn.game.playing:
+                request.session[IntroView.SHOW_RESULT_IN_SESSION] = True
+            return response
         else:
             return self._admittedGet(request)
 
@@ -107,11 +110,13 @@ class TableView(ViewWithEvents):
         passed = (
             checkIn is not None and
             checkIn.id == gameId and
-            checkIn.game and checkIn.game.playing and
             playerId is not None and
             playerId in checkIn.tokens
         )
+        if passed and not self.updateMode:
+            passed = checkIn.game and checkIn.game.playing
         if passed:
+            self.checkIn = checkIn
             self.heartbeat(playerId)
         return passed
 
@@ -132,7 +137,7 @@ class TableView(ViewWithEvents):
 
         userId = request.session[self.PLAYER_IN_SESSION]
         try:
-            checkIn = PlayerCheckIn.FACILITIES[userId]
+            checkIn = self.checkIn
             position = checkIn.tokens[userId]
             player = checkIn.game.players[position]
             action = request.POST['action']
@@ -162,7 +167,7 @@ class TableView(ViewWithEvents):
         """
 
         userId = request.session[self.PLAYER_IN_SESSION]
-        checkIn = PlayerCheckIn.FACILITIES[userId]
+        checkIn = self.checkIn
         try:
             ui = checkIn.getUiDispatcher()
             ui.confirmEvents(userId)

@@ -386,7 +386,7 @@
 	{
 		var form = $(
 			'<form id="form-invite-' + i + '" target="_blank">'
-			+ '<label for="input-invite-url-' + i + '"/>'
+			+ '<label for="input-invite-url-' + i + '" style="margin-top: 1ex;"/>'
 			+ '<div class="col-xs-11" style="padding: 0;">'
 			+ '<input type="text" class="form-control" id="input-invite-url-' + i
 			+ '" readonly/></div>'
@@ -419,7 +419,7 @@
 				form.removeClass('hidden');			
 			else if (!form.hasClass('hidden'))
 				form.addClass('hidden');
-			if (null != _oldUserInfoChange)
+			if (null != oldUserInfoChange)
 				oldUserInfoChange.apply(this, arguments);
 		};
 	})();
