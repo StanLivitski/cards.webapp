@@ -250,9 +250,18 @@ class IntroView(ViewWithEvents):
              error.args[0] if error and error.args else type(error).__name__
         return None if target is None else HttpResponseRedirect(target)
 
+    @staticmethod
+    def action_hide_banner(request):
+        """
+        Modify session to prevent further game result banner shows.
+        """
+
+        request.session[IntroView.SHOW_RESULT_IN_SESSION] = False
+
     ACTIONS_HANDLERS = mapping.ImmutableMap({
+        'banner-hide': action_hide_banner,
         'game-start' : action_start,
-        'invitation-download' : action_download_invitation
+        'invitation-download' : action_download_invitation,
     })
 
     def _handleAction(self, action, request):

@@ -209,6 +209,19 @@
     		target.eq(-1).prepend(roamingFrame);
 	}
 
+    function eachCometyChild(handler)
+    {
+    	var warned = false;
+    	$('iframe').each(function() {
+    		if ('contentWindow' in this) {
+    			if ('comety' in this.contentWindow)
+    				handler(this.contentWindow);
+    		}
+    		else if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+				console.error('Frame ' + this + ' has no `contentWindow` property.')
+    	});
+    }
+
     $(function() {
 		$(window).resize(roamMessagesFrame);
 		$('a[data-toggle="tab"][href="#tab-messages"]').on('shown.bs.tab', roamMessagesFrame);
@@ -510,10 +523,10 @@
 
 	{% if checkin.game %}
     $(function () {
-  	{% if checkin.game.result %}
-     {% with players=checkin.game.players %}
-     {% with winnerAt=checkin.game.result.0 looserAt=checkin.game.result.1 %}
-     {% with winner=players|get:winnerAt looser=players|get:looserAt %}
+  	 {% if checkin.game.result %}
+      {% with players=checkin.game.players %}
+      {% with winnerAt=checkin.game.result.0 looserAt=checkin.game.result.1 %}
+      {% with winner=players|get:winnerAt looser=players|get:looserAt %}
 		var result = {
 			'winner': [ '{{ winner.name|default_if_none:""|escapejs }}', {{ winnerAt }} ],
 			'looser': [ '{{ looser.name|default_if_none:""|escapejs }}', {{ looserAt }} ],
@@ -524,24 +537,52 @@
 			var name = player[0] ? player[0] : NAME_STUB_FORMAT.format(player[1] + 1);
 			$(".last-game").find("." + class_).text(name);
 		}
-     {% endwith %}
-     {% endwith %}
-     {% endwith %}
-  	{% else %}
+      {% endwith %}
+      {% endwith %}
+      {% endwith %}
+  	 {% else %}
   		$(".jumbotron.last-game").html(
   		'<h1><small>{% trans 'The game was tied.' %}</small></h1>');
   		$(".well.last-game").html('Last game was a tie.');
- 	{% endif %}
+ 	 {% endif %}
+	 function shrinkMessage(notifyServer) {
+		$(".jumbotron.last-game").addClass('hidden');
+		$(".well.last-game").removeClass('hidden');
+		if (notifyServer) {
+			data = { "action": "banner-hide" };
+			data[CSRF_TOKEN_CONTROL.attr("name")] = CSRF_TOKEN_CONTROL.val();
+			comety.stopUpdates();
+			eachCometyChild(function(frame) {
+				frame.comety.stopUpdates();
+			});
+			$.post("{% url 'intro-updates' %}", data
+			).always(function() {
+				comety.startUpdates();
+				eachCometyChild(function(frame) {
+					frame.comety.startUpdates();
+				});
+			}).fail(function(jqXHR, textStatus, errorThrown)
+			{
+				if (typeof(console) == 'object' && console instanceof Object && 'error' in console)
+					console.error(
+						'Result message shrink request ' +
+						(null == textStatus ? 'failed' : textStatus) +
+						(null == errorThrown ? '' : ': ' + errorThrown)
+					);
+				changeRequest = undefined; 
+			});
+		}
+	 }
+ 	 {% if showBanner %}
 		$(".jumbotron.last-game").append('<p>'
 		+ '<a class="btn btn-primary btn-lg" href="#" role="button">'
 		+ '{% trans 'Proceed' %}</a></p>'
         ).removeClass('hidden');
-		function shrinkMessage() {
-    		$(".jumbotron.last-game").addClass('hidden');
-    		$(".well.last-game").removeClass('hidden');
-    	}
     	$(".jumbotron.last-game a").click(shrinkMessage);
     	$(window).one("scroll", shrinkMessage);
+ 	 {% else %}
+ 		shrinkMessage();
+ 	 {% endif %}
     });
 	{% endif %}
 // --></script>
