@@ -35,6 +35,8 @@ msgstr ""
 "Plural-Forms: nplurals=3; plural=(n%10==1 && n%100!=11 ? 0 : n%10>=2 && n"
 "%10<=4 && (n%100<10 || n%100>=20) ? 1 : 2);\n"
 
+# NOTE: the line numbers from source files below may be outdated and incorrect 
+
 #: intro.py:456
 msgid ""
 "You entered an invalid URL or had this page open in multiple browser "
@@ -116,7 +118,7 @@ msgctxt "message sender"
 msgid "'Player ', '%%d'"
 msgstr "'%%d'"
 
-#: templates/chat.html:122
+#: templates/chat.html:145
 #, python-format
 msgctxt "message receiver"
 msgid "'Player ', '%%d'"
@@ -154,11 +156,19 @@ msgstr ""
 "Включите поддержку куки в вашем браузере или откройте эту страницу в "
 "браузере с поддержкой куки."
 
-#: templates/durak/intro.html:27
+#: templates/durak/intro.html:28
 msgid "Start a Durak game"
 msgstr "Подготовка к игре в дурака"
 
-#: templates/durak/intro.html:111
+#: templates/durak/intro.html:110
+msgid "Please enter an integer between #min and #max."
+msgstr "Введите целое число от #min до #max включительно."
+
+#: templates/durak/intro.html:140
+msgid "infinity"
+msgstr "бесконечности"
+
+#: templates/durak/intro.html:245
 msgid "Error setting up game"
 msgstr "Ошибка при подготовке к игре"
 
@@ -238,22 +248,53 @@ msgstr "Скачать"
 msgid ", "
 msgstr ", "
 
-#: templates/durak/intro.html:300
+#: templates/durak/intro.html:483
 msgid "Start game"
 msgstr "Начать игру"
 
-#: templates/durak/intro.html:347 templates/durak/intro.html:352
-#: templates/durak/table/buttons.html:40
+#: templates/durak/intro.html:507
+msgid ""
+"'<span class=\"stats text-info\">Played ' + '<span class=\"played\">0</span> "
+"game(s), ' + '<span class=\"wins\">0</span> win(s), ' + '<span class=\"losses"
+"\">0</span> loss(es).</span>'"
+msgstr ""
+"'<span class=\"stats text-info\">Сыграл(а) ' + '<span class=\"played\">0</span> "
+"игр, выигрышей ' + '<span class=\"wins\">0</span>, проигрышей ' + '<span class=\"losses"
+"\">0</span>.</span>'"
+
+#: templates/durak/intro.html:549
+msgid "The game was tied."
+msgstr "Ничья."
+
+#: templates/durak/intro.html:583
+msgid "Proceed"
+msgstr "Дальше"
+
+#: templates/durak/intro.html:594
+msgid "Congratulations,"
+msgstr "Ура,"
+
+#: templates/durak/intro.html:595
+msgid "<span class=\"winner\"></span> you won!"
+msgstr "<span class=\"winner\"></span> вы победили!"
+
+#: templates/durak/intro.html:596
+msgid "<span class=\"looser\"></span> lost."
+msgstr "<span class=\"looser\"></span> проиграл(а)."
+
+#: templates/durak/intro.html:599
+msgid ""
+"В прошлой игре победил(а) <span class=\"winner\"></span>; проиграл(а)"
+" <span class=\"looser\"></span> lost."
+msgstr ""
+
+#: templates/durak/intro.html:623 templates/durak/intro.html:629
 msgid "Settings"
 msgstr "Параметры"
 
-#: templates/durak/intro.html:359
+#: templates/durak/intro.html:635
 msgid "Player count"
 msgstr "Число игроков"
-
-#: templates/durak/intro.html:404
-msgid "Please enter an integer between #min and #max."
-msgstr "Введите целое число от #min до #max включительно."
 
 #: templates/durak/intro.html:451
 msgid "Connect players to"
@@ -274,6 +315,10 @@ msgstr "имя или IP-адрес"
 #: templates/durak/intro.html:504
 msgid "Please enter a host name or address."
 msgstr "Необходимо ввести имя или IP-адрес устройства"
+
+#: templates/durak/intro.html:753
+msgid "Deck starts from rank"
+msgstr "Колода в игре начинается с"
 
 #: templates/durak/invitation.html:39
 msgid "Click here to join the game"

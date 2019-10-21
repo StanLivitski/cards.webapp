@@ -1168,18 +1168,24 @@ TODOdoc:
                 index = self.nextPlayersIndex(index)
             # deal cards to the former defendant last
             self._replaceCards(self.players[oldDefendant])
-            # a player can attack only if s/he has cards
-            i = self.attacker
-            while not self.players[i].hand:
+            # a player can attack only if s/he has cards,
+            # otherwise s/he has quit the game  
+            index = i = self.attacker
+            self.attacker = None
+            while True:
+                if not self.players[i].hand:
+                    self._quits.add(i)
+                elif self.attacker is None:
+                    self.attacker = i
                 i = self.nextPlayersIndex(i)
-                if i == self.attacker:
+                if i == index:
                     break
-            if not self.players[i].hand:
+            if len(self.players) == len(self._quits):
                 # game over, draw
                 self.result = self.attacker = None
             else:
-                self.attacker = i
                 # a player can defend only if s/he has cards
+                i = self.attacker
                 while True:
                     i = self.nextPlayersIndex(i)
                     if self.players[i].hand:

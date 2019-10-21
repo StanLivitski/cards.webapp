@@ -67,7 +67,7 @@ import threading
 
 import netifaces
 
-from django.utils.translation import ugettext_lazy as _
+from django.utils.translation import pgettext_lazy
 
 import cards.game
 import cards.durak
@@ -411,7 +411,7 @@ class PlayerCheckIn:
     ))
 
     LOCALIZED_PLAYER_STATA = tuple(
-        _(status) for status in PLAYER_STATA
+        pgettext_lazy("player status", status) for status in PLAYER_STATA
     )
 
     PLAYER_UPDATE_EVENT = 'player-update'
@@ -829,7 +829,7 @@ class PlayerCheckIn:
         self.uiDispatcher.postEvent(self,
             event = self.PLAYER_STATUS_EVENT,
             index = playerNo,
-            status = _(status),
+            status = pgettext_lazy("player status", status),
             code = self.PLAYER_STATA_CODES[status]
         )
         ready = self.ready

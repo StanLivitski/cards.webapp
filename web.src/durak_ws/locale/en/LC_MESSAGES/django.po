@@ -24,7 +24,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-08-04 16:41-0400\n"
+"POT-Creation-Date: 2019-10-19 23:55-0400\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -33,98 +33,105 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 
-#: intro.py:456
+#: intro.py:476
 msgid ""
 "You entered an invalid URL or had this page open in multiple browser "
 "windows.\n"
 " Please check the URL or use the existing window with this application."
 msgstr ""
 
-#: table.py:59
+#: table.py:48
 msgid "attacks"
 msgstr ""
 
-#: table.py:59
+#: table.py:48
 msgid "you attack"
 msgstr ""
 
-#: table.py:60
+#: table.py:49
 msgid "defends"
 msgstr ""
 
-#: table.py:60
+#: table.py:49
 msgid "you defend"
 msgstr ""
 
-#: table.py:61
+#: table.py:50
 msgid "collects"
 msgstr ""
 
-#: table.py:61
+#: table.py:50
 msgid "you collect"
 msgstr ""
 
-#: table.py:62
+#: table.py:51
 msgid "quits"
 msgstr ""
 
-#: table.py:62
+#: table.py:51
 msgid "you quit"
 msgstr ""
 
-#: table.py:183
+#: table.py:177
 #, python-format
 msgid "Unknown table layout: \"%s\""
 msgstr ""
 
-#: templates/chat.html:27 templates/durak/intro.html:350
-#: templates/durak/intro.html:553
+#: templates/chat.html:27 templates/durak/intro.html:626
+#: templates/durak/intro.html:824 templates/durak/table.html:179
+#: templates/durak/table/buttons.html:40
 msgid "Messages"
 msgstr ""
 
-#: templates/chat.html:68
+#: templates/chat.html:104
 #, python-format
 msgid "'%%s',' to all:'"
 msgstr ""
 
-#: templates/chat.html:69
+#: templates/chat.html:105
 #, python-format
 msgid "'You to ','%%s',':'"
 msgstr ""
 
-#: templates/chat.html:70
+#: templates/chat.html:106
 #, python-format
 msgid "'%%s',' to ','%%s',':'"
 msgstr ""
 
-#: templates/chat.html:71
+#: templates/chat.html:107
 #, python-format
 msgid "'%%s',' to you:'"
 msgstr ""
 
-#: templates/chat.html:79
+#: templates/chat.html:123
 msgid "You to all:"
 msgstr ""
 
-#: templates/chat.html:98
+#: templates/chat.html:142
 #, python-format
 msgctxt "message sender"
 msgid "'Player ', '%%d'"
 msgstr ""
 
-#: templates/chat.html:136
+#: templates/chat.html:145
+#, python-format
+msgctxt "message receiver"
+msgid "'Player ', '%%d'"
+msgstr ""
+
+#: templates/chat.html:232
 msgid "all"
 msgstr ""
 
-#: templates/chat.html:160
+#: templates/chat.html:308
 msgid "Type your message here"
 msgstr ""
 
-#: templates/chat.html:165
+#: templates/chat.html:313
 msgid "Send"
 msgstr ""
 
-#: templates/chat.html:168
+#: templates/chat.html:316
 msgid "to:"
 msgstr ""
 
@@ -140,121 +147,163 @@ msgstr ""
 msgid "Please enable cookies in your browser and try again."
 msgstr ""
 
-#: templates/durak/intro.html:27
+#: templates/durak/intro.html:28
 msgid "Start a Durak game"
 msgstr ""
 
-#: templates/durak/intro.html:111
+#: templates/durak/intro.html:110
+msgid "Please enter an integer between #min and #max."
+msgstr ""
+
+#: templates/durak/intro.html:140
+msgid "infinity"
+msgstr ""
+
+#: templates/durak/intro.html:245
 msgid "Error setting up game"
 msgstr ""
 
-#: templates/durak/intro.html:118
+#: templates/durak/intro.html:252
 msgid "Ok"
 msgstr ""
 
-#: templates/durak/intro.html:136
+#: templates/durak/intro.html:270
 msgid "Confirm nameless players"
 msgstr ""
 
-#: templates/durak/intro.html:139
+#: templates/durak/intro.html:273
 msgid "Player(s)"
 msgstr ""
 
-#: templates/durak/intro.html:141
+#: templates/durak/intro.html:275
 msgid "have not entered their names."
 msgstr ""
 
-#: templates/durak/intro.html:142
+#: templates/durak/intro.html:276
 msgid "Start the game with nameless players?"
 msgstr ""
 
-#: templates/durak/intro.html:146
+#: templates/durak/intro.html:280
 msgid "Cancel"
 msgstr ""
 
-#: templates/durak/intro.html:149
+#: templates/durak/intro.html:283
 msgid "Yes"
 msgstr ""
 
-#: templates/durak/intro.html:167
+#: models.py:404 templates/durak/intro.html:299
 msgctxt "player status"
 msgid "you"
 msgstr ""
 
-#: models.py:403 models.py:884 models.py:1396 models.py:1398 models.py:1427
+#: models.py:405 models.py:903 models.py:1454 models.py:1456 models.py:1490
+msgctxt "player status"
 msgid "expected"
 msgstr ""
 
-#: models.py:404 models.py:821 models.py:884 models.py:1400
+#: models.py:406 models.py:823 models.py:903 models.py:1458
+msgctxt "player status"
 msgid "joined"
 msgstr ""
 
-#: templates/durak/intro.html:175
+#: templates/durak/intro.html:310 templates/durak/table.html:145
 #, python-format
 msgid "'Player ', '%%d'"
 msgstr ""
 
-#: templates/durak/intro.html:207
+#: templates/durak/intro.html:372
 msgid "Enter name"
 msgstr ""
 
-#: templates/durak/intro.html:226
+#: templates/durak/intro.html:394
 #, python-format
 msgid ""
 "'Please copy or download this URL and ask ', '%%s', ' to open it in his/her "
 "browser:'"
 msgstr ""
 
-#: templates/durak/intro.html:230
+#: templates/durak/intro.html:398
 #, python-format
 msgid ""
 "'Please copy or download this URL and ask Player ', '%%d', ' to open it in "
 "his/her browser:'"
 msgstr ""
 
-#: templates/durak/intro.html:245 templates/durak/intro.html:248
+#: templates/durak/intro.html:413 templates/durak/intro.html:416
 msgid "Download"
 msgstr ""
 
-#: templates/durak/intro.html:273
+#: templates/durak/intro.html:456
 msgid ", "
 msgstr ""
 
-#: templates/durak/intro.html:300
+#: templates/durak/intro.html:483
 msgid "Start game"
 msgstr ""
 
-#: templates/durak/intro.html:347 templates/durak/intro.html:352
-#: templates/durak/table/buttons.html:40
+#: templates/durak/intro.html:507
+msgid ""
+"'<span class=\"stats text-info\">Played ' + '<span class=\"played\">0</span> "
+"game(s), ' + '<span class=\"wins\">0</span> win(s), ' + '<span class=\"losses"
+"\">0</span> loss(es).</span>'"
+msgstr ""
+
+#: templates/durak/intro.html:549
+msgid "The game was tied."
+msgstr ""
+
+#: templates/durak/intro.html:583
+msgid "Proceed"
+msgstr ""
+
+#: templates/durak/intro.html:594
+msgid "Congratulations,"
+msgstr ""
+
+#: templates/durak/intro.html:595
+msgid "<span class=\"winner\"></span> you won!"
+msgstr ""
+
+#: templates/durak/intro.html:596
+msgid "<span class=\"looser\"></span> lost."
+msgstr ""
+
+#: templates/durak/intro.html:599
+msgid ""
+"Last game: <span class=\"winner\"></span> won; <span class=\"looser\"></"
+"span> lost."
+msgstr ""
+
+#: templates/durak/intro.html:623 templates/durak/intro.html:629
 msgid "Settings"
 msgstr ""
 
-#: templates/durak/intro.html:359
+#: templates/durak/intro.html:635
 msgid "Player count"
 msgstr ""
 
-#: templates/durak/intro.html:404
-msgid "Please enter an integer between #min and #max."
-msgstr ""
-
-#: templates/durak/intro.html:451
+#: templates/durak/intro.html:680
 msgid "Connect players to"
 msgstr ""
 
-#: templates/durak/intro.html:463
+#: templates/durak/intro.html:692
 msgid "Other ..."
 msgstr ""
 
-#: templates/durak/intro.html:470
+#: templates/durak/intro.html:699
 msgid "... other destination"
 msgstr ""
 
-#: templates/durak/intro.html:472
+#: templates/durak/intro.html:701
 msgid "name or address"
 msgstr ""
 
-#: templates/durak/intro.html:504
+#: templates/durak/intro.html:733
 msgid "Please enter a host name or address."
+msgstr ""
+
+#: templates/durak/intro.html:753
+msgid "Deck starts from rank"
 msgstr ""
 
 #: templates/durak/invitation.html:39
@@ -273,7 +322,7 @@ msgstr ""
 msgid "End turn"
 msgstr ""
 
-#: templates/durak/table/opponent.html:50
+#: templates/durak/table/opponent.html:60
 #, python-format
 msgid "Player %(no)s"
 msgstr ""

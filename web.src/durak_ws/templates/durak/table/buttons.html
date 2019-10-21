@@ -39,6 +39,7 @@
 			{% endif %}</button>
 		<button type="button" {% trans "Messages" as messages_caption %}
 	        aria-label="{{messages_caption}}" title="{{messages_caption}}"
+	        data-toggle="modal" data-target="#modal-messages"
 			data-sc-font-size="FS" class="btn btn-default scaler active btn-xs"
 			data-sc-padding="[Math.round(FS/6), Math.round(FS/2)]">
 	        <span class="glyphicon glyphicon-envelope scaler"

@@ -25,7 +25,21 @@
 {% load staticfiles %}
 
 {% block title %}{% trans "Messages" %}{% endblock %}
+{% comment %}
 
+When opening this page in a frame, the parent window should provide:
+
+ - the actual list of users (via 'getUserCount' and 'getUserName' functions
+    of parent window)
+ - a cache with rendered HTML with chat history, auto-created when missing
+   (cached in a `<div class="cache messages"></div>` of the parent window's
+    document body, the cache is usually hidden)
+ - notifications of player list changes (by overriding the 'onUserInfoChange'
+    method of the parent window; optional). NOTE: `onUserInfoChange` has been
+    modified to accept the player seat number argument, which is
+    currently ignored here
+
+{% endcomment %}
 {% block head_scripts %}
 	{{ block.super }}
     <script src="{% static 'js/formatter.js' %}"></script>
@@ -91,7 +105,15 @@
     var MESSAGE_OUTGOING_HEADER_FORMAT = Formatter([{% trans "'You to ','%s',':'" %}]);
     var MESSAGE_DIRECTED_HEADER_FORMAT = Formatter([{% trans "'%s',' to ','%s',':'" %}]);
     var MESSAGE_INCOMING_HEADER_FORMAT = Formatter([{% trans "'%s',' to you:'" %}]);
-	function postMessage(from, to, text, sent)
+    function scrollToBottom()
+    {
+    	var contentHeight = $("main.messages").outerHeight();
+    	var containerHeight = $('body').height();
+    	$(document).scrollTop(contentHeight > containerHeight
+    		? contentHeight - containerHeight : 0);
+	}
+
+    function postMessage(from, to, text, sent)
     {
 		var article = wrapMessage(text);
 		if (sent)
@@ -113,6 +135,7 @@
 		if (0 != dest.first().children().length)
 			dest.append(CLEARFIX.clone());
 		dest.append(article);
+		scrollToBottom();
     }
 	 
 	var SENDER_NAME_STUB_FORMAT = Formatter([
@@ -165,6 +188,7 @@
             	postMessage(sender, to, message[1].text, sent);        		
         	}
         }
+        scrollToBottom();
     });
 
     {% include "comety/events.js" with renderTiming=False autoStart=True %}
