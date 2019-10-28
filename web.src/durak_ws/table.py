@@ -253,30 +253,28 @@ class TableView(ViewWithEvents):
         gameId = request.session.get(self.GAME_IN_SESSION)
         return (id_ if checkIn is not None and gameId == checkIn.id else None)           
 
-    def disconnectSession(self, token): # TODO: share with the intro view
+    def disconnectSession(self, session): # TODO: share with the intro view
         """
         Invalidate an inactive session to allow a player to
         reconnect. 
         
-        This method should be called when the application
-        detects that a player has disconnected. It delegates
-        to `sessionByUser` in superclass to retrieve
-        that player's session by her token, and invalidates
-        the session by removing the variable with
+        Invalidates a session by removing the variable with
         `GAME_IN_SESSION` key.
+        This method should be called when the application
+        detects that a player has disconnected.
+        Call `sessionByUser` first to retrieve
+        the player's session object.
         
         Parameters
         ----------
-        token : str
-            Token of the player that is no longer connected.
+        session : django.contrib.sessions.backends.base.SessionBase
+            The session object deemed inactive.
     
         Raises
         ------
-        TypeError
-            If ``token`` is not a string.
         KeyError
-            If there is no mapping for ``token`` to session key
-            in the cache.
+            If there is no mapping for `GAME_IN_SESSION` key
+            in the passed session.
     
         See Also
         --------    
@@ -290,6 +288,5 @@ class TableView(ViewWithEvents):
          ]
         """
 
-        session = self.sessionByUser(token)
         del session[self.GAME_IN_SESSION]
         session.save()

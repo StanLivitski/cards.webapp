@@ -104,7 +104,10 @@ def expireSession(sender, **kwargs):
     from . import models # TODO: additional views, if any
     if isinstance(type(sender), type) and issubclass(sender, ViewWithEvents):
         userId = kwargs['userId']
-        sender().disconnectSession(userId)
+        view = sender()
+        if isinstance(view, ViewWithEvents):
+            session = view.sessionByUser(userId)
+            view.disconnectSession(session)
         checkIn = models.PlayerCheckIn.FACILITIES.get(userId)
         if checkIn is not None:
             checkIn.playerConnectionStatus(userId)

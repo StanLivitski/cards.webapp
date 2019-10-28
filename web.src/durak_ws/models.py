@@ -20,7 +20,6 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
-from sys import exc_info
 """
     Classes that implement check-in of players via this web
     application and connect interactive players to the game
@@ -67,7 +66,10 @@ import threading
 
 import netifaces
 
+from django.utils import timezone
 from django.utils.translation import pgettext_lazy
+
+from comety.django.views import ViewWithEvents
 
 import cards.game
 import cards.durak
@@ -422,6 +424,9 @@ class PlayerCheckIn:
 
     FACILITIES = dict()
 
+    # TODO: shut down along with app/server
+    TIMER = comety.MultiTimer()
+
     @classmethod
     def ACTIVE_FACILITY(cls):
         """
@@ -468,14 +473,13 @@ class PlayerCheckIn:
 
     def __init__(self, gameType = None):
         self._gameType = WebGame if gameType is None else gameType
-        self._comety = None
-        self._game = None
+        self._comety = self._game = self._expiryTask = None
         self._settings = self._gameType.defaults() 
         count = self._settings['players'] # documented at `getCapacity`
         self._players = [ None ] * count
         # values are tuples of ``(token, player object)`` for established sessions,
         # tuples of ``(token,)`` otherwise
-        self.chatDispatcher = comety.Dispatcher()
+        self.chatDispatcher = comety.Dispatcher(self.TIMER)
         self._tokens = {} # values are players' positions at the table
         i = 0
         for token in self.createTokens(count):
@@ -562,7 +566,7 @@ class PlayerCheckIn:
         """
 
         if self._comety is None:
-            self._comety = comety.Dispatcher()
+            self._comety = comety.Dispatcher(self.TIMER)
         return self._comety
 
     uiDispatcher = property(getUiDispatcher)
@@ -901,8 +905,52 @@ class PlayerCheckIn:
                     % (type(player).__name__, playerNo, token))
             player.offline = not connected
             self._onPlayerStatusChange(playerNo, 'joined' if connected else 'expected', wasReady)
+            if self._expiryTask is not None:
+                self._expiryTask.cancel()
+                self._expiryTask = None
+            if not connected:
+                latest = None
+                for token, playerNo in self.tokens.items():
+                    player = self.fetchPlayer(playerNo)
+                    if not isinstance(player, RemoteEntity):
+                        continue
+                    elif not player.offline:
+                        latest = None
+                        break
+                    expiry = ViewWithEvents.sessionByUser(token).get_expiry_date()
+                    if latest is None or latest < expiry:
+                        latest = expiry
+                if latest is not None:
+                    self._expiryTask = self.TIMER.start(
+                        (latest - timezone.now()).total_seconds(),
+                        self.expire)
         else:
             raise ValueError('Unknown token: "%s"' % token)       
+
+    def expire(self):
+        """
+        Process expiration of all related players' sessions.
+        
+        Removes this object from `FACILITIES` and disposes
+        of any associated game object. 
+        """
+
+        if isinstance(self._game, DropBox):
+            try:
+                self._game.discard(.1)
+            except:
+                log = logging.getLogger(type(self).__module__)
+                log.error(
+                    'Error stopping delivery loop of %s',
+                    self._game, exc_info=True
+                )
+        cls = type(self)
+        for token in self.tokens:
+            del cls.FACILITIES[token]
+        assert self.id not in cls.FACILITIES
+        active = getattr(cls, '_activeFacilityId', None)
+        if active == self.id:
+            delattr(cls, '_activeFacilityId')
 
     def close(self):
         """
@@ -960,10 +1008,6 @@ class PlayerCheckIn:
         False
         >>> type(checkIn.game) is Game
         True
-        >>> checkIn.capacity = 5  #doctest: +ELLIPSIS
-        Traceback (most recent call last):
-        ...
-        TypeError: ...
         """
 
         settings = self.gameSettings
@@ -1182,8 +1226,6 @@ class PlayerCheckIn:
         ----------
         ValueError
             When the argument is not an acceptable capacity value.
-        TypeError
-            When this object is `close`d and does not allow changes. 
 
         Examples
         --------
@@ -1843,7 +1885,7 @@ class DropBox:
                        'the dispatcher thread did not stop in %s seconds.'
                        % timeout
                     )
-                    self._submitLock.release() # acquired by the _deliveryLoop() shutdown  
+                self._submitLock.release() # acquired by the _deliveryLoop() shutdown  
             self._delivery = None
 
     class Message:
