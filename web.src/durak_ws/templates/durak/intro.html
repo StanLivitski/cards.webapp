@@ -286,6 +286,8 @@
 </div>
 	{% endif %}
 
+<form class="hidden" id="form-csrf">{% csrf_token %}</form>
+
 <script type="text/javascript"><!--
 	var PLAYER_INFO = [
     {% for playerInfo in checkin.playerStata %}
@@ -302,7 +304,7 @@
     	},
     {% endfor %}
 	];
-	var CSRF_TOKEN_CONTROL = $("{% csrf_token %}", document);
+	var CSRF_TOKEN_CONTROL = $("#form-csrf > *");
 	var NAME_STUB_FORMAT = Formatter([{% trans "'Player ', '%d'" %}]);
 	var seat = {{playerNo}};
 	var changeRequest, onUserInfoChange;
