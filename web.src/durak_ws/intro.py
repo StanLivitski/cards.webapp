@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015, 2016, 2017 Stan Livitski
+# Copyright © 2015 - 2020 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -36,8 +36,8 @@ import mapping
 from comety.django.views import ViewWithEvents
 
 import durak_ws
-from durak_ws.models import PlayerCheckIn, InboundAddressEnumerator, \
-    RemoteEntity, WebGame
+from cards_web.connect import InboundAddressEnumerator
+from durak_ws.models import PlayerCheckIn, RemoteEntity, WebGame
 
 class IntroView(ViewWithEvents):
     """
@@ -377,7 +377,7 @@ class IntroView(ViewWithEvents):
             self.heartbeat(playerId)
             self.checkIn = checkIn
         return passed
-
+        
     def _admitRequest(self, request, *args):
         """
         Process a request to admit new player to a game table.
