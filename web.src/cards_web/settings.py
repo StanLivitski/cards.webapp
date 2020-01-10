@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2015, 2016, 2017, 2018 Stan Livitski
+# Copyright © 2015 - 2020 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
@@ -30,10 +30,14 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.11/ref/settings/
 """
 
-# Build paths inside the project like this: os.path.join(BASE_DIR, ...)
-import os
 import cards_web
 
+import os
+import warnings
+
+from django.conf import global_settings as _global_settings
+
+# Construct paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DEPENDENCIES_DIR = os.path.join(BASE_DIR, 'depends')
@@ -42,7 +46,14 @@ DEPENDENCIES_DIR = os.path.join(BASE_DIR, 'depends')
 # See https://docs.djangoproject.com/en/1.8/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = '23=@!2eee6av81rzrb$ij0l)t_$v3q*3cq%^le07@^ey6xx2z&'
+SECRET_KEY = 'DJANGO_SECRET_KEY'
+if SECRET_KEY in os.environ:
+    SECRET_KEY = os.environ[SECRET_KEY]
+else:
+    warnings.warn('Please set the %s environment variable to a secret value'
+                  ' shared by all the application\'s processes, or the startup'
+                  ' may fail.' % SECRET_KEY)
+    SECRET_KEY = _global_settings.SECRET_KEY
 
 # TODO: SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
