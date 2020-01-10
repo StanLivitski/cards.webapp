@@ -1,6 +1,6 @@
 # vim:fileencoding=UTF-8 
 #
-# Copyright © 2020 Stan Livitski
+# Copyright © 2016, 2020 Stan Livitski
 # 
 # Licensed under the Apache License, Version 2.0 with modifications
 # and the "Commons Clause" Condition, (the "License"); you may not
