@@ -26,6 +26,7 @@ import sys
 from urllib.parse import urlunsplit
 
 import django.urls
+from django.conf import settings
 from django.http.response import \
     HttpResponse, HttpResponseForbidden, HttpResponseRedirect, HttpResponseServerError
 from django.shortcuts import render
@@ -377,6 +378,22 @@ class IntroView(ViewWithEvents):
             self.heartbeat(playerId)
             self.checkIn = checkIn
         return passed
+
+    def getPAM(self):
+        """
+        Retrieve a reference to the Pluggable Authentication Module
+        (PAM) configured for the application.
+
+        The application looks up a PAM reference in the
+        ``CARDS_AUTHENTICATOR`` Django setting. If that setting
+        is absent, authenticator class ``LocalClientAuthenticator``
+        from the `cards_web.connect` module is returned by default. 
+
+        Returns
+        -------
+        TODOdoc
+        """
+        # TODO
         
     def _admitRequest(self, request, *args):
         """

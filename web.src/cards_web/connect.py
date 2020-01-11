@@ -57,8 +57,233 @@
 
 import netifaces
 
+import abc
 import collections
 import socket
+
+class Authenticator(abc.ABC):
+    """
+    Interface to an object that implements the user
+    authentication function within game apps.
+    
+    A Pluggable Authentication Module (PAM) should
+    provide a class of objects implementing this interface,
+    or an equivalent function. Such authenticator is then
+    referenced by the configuration file and created/called
+    by an app to authenticate its user(s). Authentication
+    may happen either synchronously or asynchronously,
+    and PAMs must list all the authentication method(s)
+    that they implement. An application does not have to
+    support both synchronous and asynchronous authentication,
+    and if it doesn't, it cannot be used with PAMs that don't
+    implement a compatible method.
+
+    If the callback is present and the PAM doesn't implement
+    asynchronous authentication, it shall ignore the callback
+    and assume the state that corresponds to the authentication
+    result. If the callback is absent and the PAM implements
+    only asynchronous authentication, it shall raise an exception
+    listed below.
+
+    A PAM that provides authenticator function instead of a class
+    must have it accept the same arguments as the class constructor
+    and return a `userInfo` value on success, ``False`` on failure,
+    or ``None`` for asynchronous authentication in progress.
+
+    Parameters
+    ----------
+    request : django.http.HttpRequest
+            Authentication request from a user.
+    callback_ : callable, optional
+            If the application supports asynchronous authentication,
+            it passes the function or object that will receive the
+            authentication result. The single argument that will be
+            passed to the callback is the `userInfo` return value,
+            or (with minimal implementations) a boolean indicating
+            successful authentication. *NOTE:* the callback may, but
+            doesn't have to, be run on a different thread, outside
+            the context of initial authentication request.
+
+    Other parameters
+    ----------
+    args : tuple
+        Positional arguments the application receives with the
+        authentication request.
+    kwargs : dict
+        Keyword arguments the application receives with the
+        authentication request.
+
+    Raises
+    ------
+    TypeError
+        If any of the above arguments has an inappropriate type,
+        or the PAM supports only asynchronous authentication and
+        no ``callback`` has been passed.
+    """
+
+    @abc.abstractmethod
+    def __init__(self, request, *args, callback_ = None, **kwargs):
+        """
+        Create an authenticator and perform, or start, the
+        authentication process.
+
+        Notes
+        -----
+        See above for implementors' requirements.
+        """
+
+    @abc.abstractmethod
+    def __bool__(self):
+        """
+        Indicate authentication success to the caller.
+    
+        Returns
+        -------
+        boolean
+            ``True`` on success, ``False`` on failure.
+    
+        Raises
+        ------
+        TypeError
+            When the authenticator has an asynchronous operation
+            in progress.
+    
+        See Also
+        --------    
+        ready : Tells whether there is an asynchronous operation
+            in progress without raising an error.
+        """
+
+    def ready(self):
+        """
+        Tell whether there is an asynchronous operation
+        in progress with this authenticator.
+        
+        This method is optional. Asynchronous authenticators
+        should implement it to report operations in progress
+        without the expense of exception handling.
+    
+        Returns
+        -------
+        boolean
+            ``False`` if this authenticator is performing
+            an asynchronous operation, ``True`` otherwise.
+    
+        See Also
+        --------    
+        userInfo : Provides information about the authenticated user
+            if this method returns ``True``.
+    
+        Notes
+        -----
+        Default implementation casts this object to a boolean
+        and returns ``True`` if that doesn't cause an error,
+        or ``False`` otherwise.
+        """
+        try:
+            bool(self)
+            return True
+        except:
+            return False
+
+    def userInfo(self):
+        """
+        Provides information about the authenticated user.
+        
+        This method is optional and any records it may return
+        are implementation-specific.
+    
+        Returns
+        -------
+        object | bool
+            A record describing the authenticated user, or ``True``
+            with minimal implementations. This _must not_ evaluate
+            to a ``False`` boolean value.
+    
+        Raises
+        ------
+        TypeError
+            When the authenticator has an asynchronous operation
+            in progress.
+        RuntimeError
+            If the authentication had failed.
+    
+        See Also
+        --------    
+        ready : Tells whether there is an asynchronous operation
+            in progress without raising an error.
+    
+        Notes
+        -----
+        Default implementation casts this object to a boolean
+        and returns the result, if it indicated success,
+        raises `RuntimeError` on failure, or propagates any error
+        raised.
+        """
+        if self:
+            return True
+        else:
+            raise RuntimeError('Authentication failed')
+
+class LocalClientAuthenticator(Authenticator):
+    """
+    <Short summary>
+    
+    <Extended description>
+    
+[    Parameters
+    --------------------
+    <var>[, <var>] : <type | value-list>[, optional]
+        <Description of constructor's parameter(s), except ``self``>
+    ...]
+
+[    Attributes
+    -----------------
+    <name_of_a_property_having_its_own_docstring> # or #
+    <var>[, <var>] : <type | value-list>
+        <Description of an attribute>
+    ...]
+
+[    Methods
+    ---------------
+    <name>([<param>, ...])
+        <One-line description of a method to be emphasized among many others.>
+    ...]
+
+[    Other parameters
+    ------------------------------
+    <var>[, <var>] : <type | value-list>[, optional]
+        <Description of infrequently used constructor's parameter(s)>
+    ... ]
+
+[    Raises
+    ----------
+    <exception_type>
+        <Description of an error that the constructor may raise and under what conditions.
+        List only errors that are non-obvious or have a large chance of getting raised.>
+    ... ]
+
+[    See Also
+    --------------
+    <python_name> : <Description of code referred by this line
+    and how it is related to the documented code.>
+     ... ]
+
+[    Notes
+    ----------
+    <Additional information about the code, possibly including
+    a discussion of the algorithm. Follow it with a 'References'
+    section if citing any references.>
+    ]
+
+[   Examples
+    ----------------
+    <In the doctest format, illustrate how to use this class.>
+     ]
+    """
+
+    def __init__(self, params):
+        pass    # TODO: implement
 
 class InboundAddressEnumerator(collections.Sequence):
     """
