@@ -387,11 +387,16 @@ class IntroView(ViewWithEvents):
         The application looks up a PAM reference in the
         ``CARDS_AUTHENTICATOR`` Django setting. If that setting
         is absent, authenticator class ``LocalClientAuthenticator``
-        from the `cards_web.connect` module is returned by default. 
+        from the `cards_web.connect` module is returned by default.
+        Otherwise, the value must be a sequence of two elements: a
+        fully qualified module name on the application's path, and
+        the name of the authenticator class or function compliant
+        with requirements of `cards_web.connect.Authenticator`.
 
         Returns
         -------
-        TODOdoc
+        A class derived from `cards_web.connect.Authenticator`, or
+        a compatible function.
         """
         # TODO
         
