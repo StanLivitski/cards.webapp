@@ -97,10 +97,11 @@ class Authenticator(abc.ABC):
     callback_ : callable, optional
             If the application supports asynchronous authentication,
             it passes the function or object that will receive the
-            authentication result. The single argument that will be
-            passed to the callback is the `userInfo` return value,
-            or (with minimal implementations) a boolean indicating
-            successful authentication. *NOTE:* the callback may, but
+            authentication result. The two arguments that will be
+            passed to the callback are the `userInfo` return value,
+            or a boolean signaling authentication success, and the
+            `failure` return value, or ``None`` if the authentication
+            succeeds. *NOTE:* the callback may, but
             doesn't have to, be run on a different thread, outside
             the context of initial authentication request.
 
@@ -161,7 +162,7 @@ class Authenticator(abc.ABC):
         
         This method is optional. Asynchronous authenticators
         should implement it to report operations in progress
-        without the expense of exception handling.
+        without the expense of error handling.
     
         Returns
         -------
@@ -224,6 +225,46 @@ class Authenticator(abc.ABC):
             return True
         else:
             raise RuntimeError('Authentication failed')
+
+
+    def failure(self):
+        """
+        Provides information about authentication failure, if any.
+        
+        This method is optional and its return values
+        are implementation-specific.
+    
+        Returns
+        -------
+        object | string | bool
+            A record or string explaining the authentication failure,
+            or ``True`` returned by minimal implementations. This
+            _must not_ evaluate to a ``False`` boolean value.
+    
+        Raises
+        ------
+        TypeError
+            When the authenticator has an asynchronous operation
+            in progress.
+        RuntimeError
+            If the authentication had succeeded.
+    
+        See Also
+        --------    
+        ready : Tells whether there is an asynchronous operation
+            in progress without raising an error.
+    
+        Notes
+        -----
+        Default implementation casts this object to a boolean
+        and returns ``True``, if it indicated failure, raises
+        `RuntimeError` if the authentication succeeded, or propagates
+        any error raised.
+        """
+        if not self:
+            return True
+        else:
+            raise RuntimeError('Authentication succeeded')
 
 class LocalClientAuthenticator(Authenticator):
     """
