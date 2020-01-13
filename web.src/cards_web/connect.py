@@ -271,7 +271,7 @@ def local_client_authenticator(request, *args, callback_ = None, **kwargs):
     Authenticator function that admits local clients and provides no
     further user info.
 
-    This authenticator works synchronously, but invokes the callback,
+    This authenticator works synchronously, but invokes the callback
     if one is provided.
     
     Parameters
