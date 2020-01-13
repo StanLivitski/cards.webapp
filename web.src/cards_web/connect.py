@@ -266,36 +266,38 @@ class Authenticator(abc.ABC):
         else:
             raise RuntimeError('Authentication succeeded')
 
-class LocalClientAuthenticator(Authenticator):
+def local_client_authenticator(request, *args, callback_ = None, **kwargs):
     """
-    <Short summary>
+    Authenticator function that admits local clients and provides no
+    further user info.
+
+    This authenticator works synchronously, but invokes the callback,
+    if one is provided.
     
-    <Extended description>
-    
-[    Parameters
+    Parameters
     --------------------
-    <var>[, <var>] : <type | value-list>[, optional]
-        <Description of constructor's parameter(s), except ``self``>
-    ...]
+    request : django.http.HttpRequest
+            Authentication request from a user.
+    callback_ : callable, optional
+            If the application supports asynchronous authentication,
+            it passes the function or object that will receive the
+            authentication result. The two arguments that will be
+            passed to the callback are: a boolean signaling authentication
+            success; and ``True`` to indicate failure, or ``None`` otherwise.
 
-[    Attributes
-    -----------------
-    <name_of_a_property_having_its_own_docstring> # or #
-    <var>[, <var>] : <type | value-list>
-        <Description of an attribute>
-    ...]
+    Returns
+    -------
+    boolean
+        Authentication status: ``True`` on success, ``False`` on failure,
 
-[    Methods
-    ---------------
-    <name>([<param>, ...])
-        <One-line description of a method to be emphasized among many others.>
-    ...]
-
-[    Other parameters
-    ------------------------------
-    <var>[, <var>] : <type | value-list>[, optional]
-        <Description of infrequently used constructor's parameter(s)>
-    ... ]
+    Other parameters
+    ----------
+    args : tuple
+        Positional arguments received with the
+        authentication request are ignored here.
+    kwargs : dict
+        Keyword arguments received with the
+        authentication request are ignored here.
 
 [    Raises
     ----------
@@ -304,27 +306,21 @@ class LocalClientAuthenticator(Authenticator):
         List only errors that are non-obvious or have a large chance of getting raised.>
     ... ]
 
-[    See Also
-    --------------
-    <python_name> : <Description of code referred by this line
-    and how it is related to the documented code.>
-     ... ]
-
-[    Notes
-    ----------
-    <Additional information about the code, possibly including
-    a discussion of the algorithm. Follow it with a 'References'
-    section if citing any references.>
-    ]
-
-[   Examples
-    ----------------
-    <In the doctest format, illustrate how to use this class.>
-     ]
+    See Also
+    --------
+    InboundAddressEnumerator : Compiles a list of client addresses
+        that are considered local.
     """
 
-    def __init__(self, params):
-        pass    # TODO: implement
+    addrIsLocal = False
+    for localInfo in InboundAddressEnumerator.resolve(type_ = socket.SOCK_STREAM):
+        if (localInfo[1] in (socket.AF_INET, socket.AF_INET6) # family
+             and localInfo[2] == request.META['REMOTE_ADDR']):
+            addrIsLocal = True
+            break
+    if callback_ is not None:
+        callback_(addrIsLocal, None if addrIsLocal else True)
+    return addrIsLocal
 
 class InboundAddressEnumerator(collections.Sequence):
     """

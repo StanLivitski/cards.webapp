@@ -20,6 +20,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # 
+import collections
+import importlib
 import logging
 import socket
 import sys
@@ -37,14 +39,22 @@ import mapping
 from comety.django.views import ViewWithEvents
 
 import durak_ws
-from cards_web.connect import InboundAddressEnumerator
+from cards_web.connect import InboundAddressEnumerator, \
+    Authenticator, local_client_authenticator
 from durak_ws.models import PlayerCheckIn, RemoteEntity, WebGame
+from builtins import issubclass
 
 class IntroView(ViewWithEvents):
     """
-    Renders a page that allows a local user to create a game
-    and other players to join it over the web and provides
+    Renders a page that allows an authenticated user to create
+    a game and other players to join it over the web and provides
     asynchronous updates to users of that page.
+
+    Methods
+    -------
+    getPAM()
+        Returns an authenticator from the PAM configured for this
+        application.
     """
 
     http_method_names = ['get', 'post']
@@ -395,10 +405,36 @@ class IntroView(ViewWithEvents):
 
         Returns
         -------
-        A class derived from `cards_web.connect.Authenticator`, or
-        a compatible function.
+        cards_web.connect.Authenticator | callable
+            a reference to the configured or default authenticator
+
+        Notes
+        -----
+            Pluggable Authentication Modules used with this application
+            **must** support synchronous authentication mode.
         """
-        # TODO
+        if not hasattr(settings, 'CARDS_AUTHENTICATOR'):
+            return local_client_authenticator
+        ref = settings.CARDS_AUTHENTICATOR
+        if not isinstance(ref, collections.Sequence) or \
+             type(ref) is str:
+            raise TypeError('CARDS_AUTHENTICATOR setting'
+                            ' must be a non-string sequence, got: '
+                            + type(ref).__name__)
+        try:
+            module = importlib.import_module(ref[0])
+            auth = getattr(module, ref[1])
+        except:
+            raise ValueError('CARDS_AUTHENTICATOR setting is'
+                             ' not valid: ' + repr(ref))
+        if not issubclass(auth, Authenticator) and \
+             not callable(auth):
+            raise TypeError('CARDS_AUTHENTICATOR setting'
+                            ' must point to a class derived from'
+                            ' `cards_web.connect.Authenticator` or'
+                            ' a function, got: '
+                            + repr(auth))
+        return auth
         
     def _admitRequest(self, request, *args):
         """
@@ -420,14 +456,12 @@ class IntroView(ViewWithEvents):
 
         log = logging.getLogger(type(self).__module__)
         try:
-            addrString = request.META['REMOTE_ADDR']
-            addrIsLocal = None
-            for localInfo in InboundAddressEnumerator.resolve(type_ = socket.SOCK_STREAM):
-                if (localInfo[1] in (socket.AF_INET, socket.AF_INET6) # family
-                     and localInfo[2] == addrString):
-                    addrIsLocal = True
-                    break
-    
+#             if settings.DEBUG:
+#                 if request.user.is_authenticated:
+#                     log.debug('User is authenticated as %s', request.user.username)
+#                 else:
+#                     log.debug('User is not authenticated!')
+            authenticated = (self.getPAM())(request, *args)   
             admitted = None
             token = request.session.get(self.PLAYER_IN_SESSION)
             if token is None and args:
@@ -444,7 +478,7 @@ class IntroView(ViewWithEvents):
                 checkIn = PlayerCheckIn.ACTIVE_FACILITY()
 
             if not (checkIn is None or
-                    gameIdCandidate is None and addrIsLocal):
+                    gameIdCandidate is None and authenticated):
                 playerNo = checkIn.tokens.get(token)
                 playerOrToken = (None if playerNo is None else
                     checkIn.fetchPlayer(playerNo))
@@ -458,7 +492,7 @@ class IntroView(ViewWithEvents):
                 if playerOrToken is not None:
                     request.session[self.PLAYER_IN_SESSION] = token
                     admitted = True
-            elif addrIsLocal:
+            elif authenticated:
                 if checkIn is None:
                     checkIn = PlayerCheckIn()
                 playerOrToken = checkIn.fetchPlayer(0)
@@ -475,7 +509,7 @@ class IntroView(ViewWithEvents):
             if admitted:
                 log.info('Admitted client "%s" at %s with token "%s"',
                          request.META.get('HTTP_USER_AGENT'),
-                         addrString, token)
+                         request.META['REMOTE_ADDR'], token)
                 self._userId = token
                 request.session[self.GAME_IN_SESSION] = checkIn.id
                 self.updateSessionKey(token, request.session)
