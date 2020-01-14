@@ -73,16 +73,16 @@ class BaseDjangoAuthenticator(Authenticator):
             Ignored.
         **kwargs : dict
             Ignored.
-    
-        Raises
-        ------
-        TypeError
-            If the required arguments have an inappropriate type.
    
         Returns
         -------
         django.contrib.auth.models.User | bool
             Django user record on success, or ``False`` on failure.
+    
+        Raises
+        ------
+        TypeError
+            If the required arguments have an inappropriate type.
 
         Notes
         -----
@@ -137,18 +137,29 @@ class DjangoGroupAuthenticator(BaseDjangoAuthenticator):
 
     Parameters
     ----------
-    *groups : acceptable Django group names
-    """
+    *groups : tuple(str)
+        acceptable Django group names; at least one name
+        must be present, but the actual groups don't have to exist
+      
+    Raises
+    ------
+    TypeError
+        If there are no group arguments.
+   """
  
     def __init__(self, *groups):
         super().__init__()
         self.failure = None
-        self.groups = set(groups)
+        if not groups:
+            raise TypeError('No groups are listed in the configuration')
+        self.groups = groups
 
     def __call__(self, request, *args, callback_ = None, **kwargs):
         result = super().__call__(request, *args, callback_ = None, **kwargs)
         if not result:
             return result
-        elif self.failure is None and not self.groups.intersection(result.groups):
-            self.failure = 'User does not belong to group(s) %s' % self.groups
+        elif self.failure is None and \
+             not result.groups.filter(name__in = self.groups).exists():
+            self.failure = 'User does not belong to group(s) ' \
+                + ', '.join(self.groups)
         return False if self.failure else result
