@@ -27,32 +27,13 @@
 
     Key elements
     ------------
-    <python_name> : <One-line summary of a class, exception,
-    function, or any other object exported by the module and
-    named on this line.>
-    <The docstring for a package's ``__init__`` module should,
-    in most cases list the modules and subpackages exported by
-    the package here. >
-    ...
+    Authenticator : Describes an objects that implement the user
+        authentication function.
+    local_client_authenticator : Authenticator function that admits
+        local clients
+    InboundAddressEnumerator.FACILITY : List of names and addresses
+        that can be used to connect to this host by other network devices.
 
-
-[    See Also
-    --------
-    <python_name> : <Description of code named on this line
-    and how it is related to the documented module.>
-    ... ]
-
-[    Notes
-    -----
-    <Additional information about the code, possibly including
-    discussion of the algorithms. Follow it with a 'References'
-    section if citing any references.>
-]
-
-[    Examples
-    --------
-    <In the doctest format, illustrate how to use this module.>
-]
 """
 
 import netifaces
@@ -68,7 +49,7 @@ class Authenticator(abc.ABC):
     
     A Pluggable Authentication Module (PAM) should
     provide a class of objects implementing this interface,
-    or an equivalent function. Such authenticator is then
+    or an equivalent function. Such authenticators are then
     referenced by the configuration file and created/called
     by an app to authenticate its user(s). Authentication
     may happen either synchronously or asynchronously,
@@ -86,106 +67,79 @@ class Authenticator(abc.ABC):
     listed below.
 
     A PAM that provides authenticator function instead of a class
-    must have it accept the same arguments as the class constructor
-    and return a `userInfo` value on success, ``False`` on failure,
-    or ``None`` for asynchronous authentication in progress.
+    must have it follow the `__call__` method requirements, except
+    that the function should authenticate the user again when
+    called repeatedly, based on its new arguments.
 
     Parameters
     ----------
-    request : django.http.HttpRequest
-            Authentication request from a user.
-    callback_ : callable, optional
-            If the application supports asynchronous authentication,
-            it passes the function or object that will receive the
-            authentication result. The two arguments that will be
-            passed to the callback are the `userInfo` return value,
-            or a boolean signaling authentication success, and the
-            `failure` return value, or ``None`` if the authentication
-            succeeds. *NOTE:* the callback may, but
-            doesn't have to, be run on a different thread, outside
-            the context of initial authentication request.
-
-    Other parameters
-    ----------
-    args : tuple
-        Positional arguments the application receives with the
-        authentication request.
-    kwargs : dict
-        Keyword arguments the application receives with the
-        authentication request.
+    *args : tuple
+        Positional arguments the authenticator receives
+        from the configuration. Implementors may choose
+        not to accept arguments, in which case they don't have
+        to provide a constructor.
 
     Raises
     ------
     TypeError
-        If any of the above arguments has an inappropriate type,
-        or the PAM supports only asynchronous authentication and
-        no ``callback`` has been passed.
+        If any of the above arguments has an inappropriate type.
+    ValueError
+        If any of the above arguments has an invalid value.
     """
 
     @abc.abstractmethod
-    def __init__(self, request, *args, callback_ = None, **kwargs):
+    def __call__(self, request, *args, callback_ = None, **kwargs):
         """
-        Create an authenticator and perform, or start, the
-        authentication process.
+        Perform, or start, the authentication process.
 
-        Notes
-        -----
-        See above for implementors' requirements.
-        """
-
-    @abc.abstractmethod
-    def __bool__(self):
-        """
-        Indicate authentication success to the caller.
+        When called more than once, this method should not restart
+        the authentication process on subsequent invocations, but
+        must: notify the new callback or
+        arrange for such notification in addition to prior callbacks,
+        and return the authentication status.
+   
+        Parameters
+        ----------
+        request : django.http.HttpRequest | NoneType
+                Authentication request from a user, may be ``None``
+                on subsequent calls.
+        callback_ : callable, optional
+                If the application supports asynchronous authentication,
+                it passes the function or object that will receive the
+                authentication result. The two arguments that will be
+                passed to the callback are the `userInfo` return value,
+                or a boolean signaling authentication success, and the
+                `failure` return value, or ``None`` if the authentication
+                succeeds. *NOTE:* the callback may, but
+                doesn't have to, be run on a different thread, outside
+                the context of initial authentication request.
     
-        Returns
-        -------
-        boolean
-            ``True`` on success, ``False`` on failure.
+        Other parameters
+        ----------
+        *args : tuple
+            Positional arguments the application receives with the
+            authentication request.
+        **kwargs : dict
+            Keyword arguments the application receives with the
+            authentication request.
     
         Raises
         ------
         TypeError
-            When the authenticator has an asynchronous operation
-            in progress.
-    
-        See Also
-        --------    
-        ready : Tells whether there is an asynchronous operation
-            in progress without raising an error.
-        """
-
-    def ready(self):
-        """
-        Tell whether there is an asynchronous operation
-        in progress with this authenticator.
-        
-        This method is optional. Asynchronous authenticators
-        should implement it to report operations in progress
-        without the expense of error handling.
-    
+            If any of the above arguments has an inappropriate type,
+            or the PAM supports only asynchronous authentication and
+            no ``callback`` has been passed.
+   
         Returns
         -------
-        boolean
-            ``False`` if this authenticator is performing
-            an asynchronous operation, ``True`` otherwise.
+        object | bool
+            `userInfo` value on success, ``False`` on failure,
+            or ``None`` for asynchronous authentication in progress.
     
         See Also
         --------    
-        userInfo : Provides information about the authenticated user
-            if this method returns ``True``.
-    
-        Notes
-        -----
-        Default implementation casts this object to a boolean
-        and returns ``True`` if that doesn't cause an error,
-        or ``False`` otherwise.
+        failure : Provides information about authentication failure, if any.
         """
-        try:
-            bool(self)
-            return True
-        except:
-            return False
 
     def userInfo(self):
         """
@@ -209,20 +163,18 @@ class Authenticator(abc.ABC):
         RuntimeError
             If the authentication had failed.
     
-        See Also
-        --------    
-        ready : Tells whether there is an asynchronous operation
-            in progress without raising an error.
-    
         Notes
         -----
-        Default implementation casts this object to a boolean
+        Default implementation calls this object
         and returns the result, if it indicated success,
-        raises `RuntimeError` on failure, or propagates any error
-        raised.
+        raises `RuntimeError` on failure, or `TypeError`
+        for asynchronous authentication in progress.
         """
-        if self:
-            return True
+        info = self(None)
+        if info:
+            return info
+        elif info is None:
+            raise TypeError('Authentication in progress')
         else:
             raise RuntimeError('Authentication failed')
 
@@ -249,19 +201,17 @@ class Authenticator(abc.ABC):
         RuntimeError
             If the authentication had succeeded.
     
-        See Also
-        --------    
-        ready : Tells whether there is an asynchronous operation
-            in progress without raising an error.
-    
         Notes
         -----
-        Default implementation casts this object to a boolean
-        and returns ``True``, if it indicated failure, raises
-        `RuntimeError` if the authentication succeeded, or propagates
-        any error raised.
+        Default implementation calls this object
+        and returns ``True``, if it indicated failure,
+        raises `RuntimeError` if the authentication succeeded, or
+        `TypeError` for asynchronous authentication in progress.
         """
-        if not self:
+        info = self(None)
+        if info is None:
+            raise TypeError('Authentication in progress')
+        elif not info:
             return True
         else:
             raise RuntimeError('Authentication succeeded')

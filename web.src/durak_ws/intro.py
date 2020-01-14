@@ -424,11 +424,12 @@ class IntroView(ViewWithEvents):
         try:
             module = importlib.import_module(ref[0])
             auth = getattr(module, ref[1])
+            if issubclass(auth, Authenticator):
+                auth = auth(*ref[2:])
         except:
             raise ValueError('CARDS_AUTHENTICATOR setting is'
                              ' not valid: ' + repr(ref))
-        if not issubclass(auth, Authenticator) and \
-             not callable(auth):
+        if not callable(auth):
             raise TypeError('CARDS_AUTHENTICATOR setting'
                             ' must point to a class derived from'
                             ' `cards_web.connect.Authenticator` or'
