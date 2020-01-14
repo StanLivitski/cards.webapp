@@ -55,6 +55,8 @@ the package here. >
 ]
 """
 
+import logging
+
 from django.dispatch import receiver
 from comety.django.views import ViewWithEvents
 
@@ -106,8 +108,12 @@ def expireSession(sender, **kwargs):
         userId = kwargs['userId']
         view = sender()
         if isinstance(view, ViewWithEvents):
-            session = view.sessionByUser(userId)
-            view.disconnectSession(session)
+            try:
+                session = view.sessionByUser(userId)
+                view.disconnectSession(session)
+            except KeyError:
+                logging.getLogger(__name__).warning(
+                    'No session found for user %s' % userId)
         checkIn = models.PlayerCheckIn.FACILITIES.get(userId)
         if checkIn is not None:
             checkIn.playerConnectionStatus(userId)
