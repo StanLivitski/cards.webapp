@@ -171,6 +171,13 @@ def defaultServer(command):
         sys.argv.remove(addrport)
         addrport = default_addr + ':' + addrport
         sys.argv.append(addrport)
+    prompter = Prompter(
+        socketserver.BaseServer,
+        'serve_forever'
+    )
+    def patch(self, *args, **kwargs):
+        prompter(self, *args, **kwargs)
+    socketserver.BaseServer.serve_forever = patch
 
 if __name__ == "__main__":
 
@@ -180,7 +187,7 @@ if __name__ == "__main__":
     realpath = os.path.realpath(__file__)
     projdir = os.path.dirname(realpath)
     defaultServer(command)
-    if not os.path.samefile(basedir, projdir) and len(sys.argv) > 1:
+    if not os.path.samefile(basedir, projdir):
         addpath = []
         for entry in os.listdir(basedir):
             if '.src' == entry[-4:].lower():
@@ -204,11 +211,4 @@ if __name__ == "__main__":
                 for i in range(63)
             ])
 
-    prompter = Prompter(
-        socketserver.BaseServer,
-        'serve_forever'
-    )
-    def patch(self, *args, **kwargs):
-        prompter(self, *args, **kwargs)
-    socketserver.BaseServer.serve_forever = patch
     utility.execute()
