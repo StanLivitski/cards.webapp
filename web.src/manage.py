@@ -124,6 +124,7 @@ def defaultServer(command):
     if 'runserver' != command:
         return
     sys.argv[0] = command
+    os.environ["DJANGO_SETTINGS_MODULE"] = "cards_web.settings"
     fixport = v6 = False
     addrport = None
     for i in range(1, len(sys.argv)):
