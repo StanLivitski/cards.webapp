@@ -34,8 +34,22 @@ import cards_web
 
 import os
 import warnings
+from urllib.parse import urlsplit
 
 from django.conf import global_settings as _global_settings
+
+# Scheme, location, and path URL parts to be prepended to the
+# application's URLs before showing them to external clients.
+# By default, the project is assumed to run
+# on a local network, so no external URLs are formed.
+# Otherwise, the value is a sequence of scheme, location, and path
+# strings, or a URL string combined from these components.
+EXTERNAL_URL_PREFIX = None
+
+# The above value converted to a sequence, or ``None``
+EXTERNAL_URL_PREFIX_ = ( urlsplit(EXTERNAL_URL_PREFIX, '', False)
+            if isinstance(EXTERNAL_URL_PREFIX, str)
+            else EXTERNAL_URL_PREFIX )
 
 # Construct paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -180,6 +194,12 @@ LOCALE_PATHS = ( 'locale', )
 # Static files (CSS, JavaScript, Images)
 
 STATIC_URL = '/static/'
+
+if EXTERNAL_URL_PREFIX_ is not None:
+    STATIC_URL = (EXTERNAL_URL_PREFIX_[2][:-1]
+                  if EXTERNAL_URL_PREFIX_[2][-1:] == '/'
+                  else EXTERNAL_URL_PREFIX_[2]
+                  + STATIC_URL)
 
 STATICFILES_DIRS = (
     ("scaler", os.path.join(DEPENDENCIES_DIR, 'scaler/src')),
