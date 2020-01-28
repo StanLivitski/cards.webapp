@@ -127,13 +127,15 @@ def defaultServer(command):
     os.environ["DJANGO_SETTINGS_MODULE"] = "cards_web.settings"
     fixport = v6 = False
     addrport = None
-    for i in range(1, len(sys.argv)):
+    i = 1
+    while i < len(sys.argv):
         arg = sys.argv[i]
+        i += 1
         if arg.lower() == '--fixport':
             fixport = True
+            i -= 1
             sys.argv.pop(i)
         elif arg == '--':
-            i += 1
             if i < len(sys.argv):
                 addrport = sys.argv[i]
             break
@@ -205,13 +207,15 @@ if __name__ == "__main__":
             os.environ['PYTHONPATH'] = os.pathsep.join(addpath)
 
     genkey = True
-    for i in range(1, len(sys.argv)):
+    i = 1
+    while i < len(sys.argv):
         arg = sys.argv[i]
         if arg.lower() == '--nokey':
             genkey = False
             sys.argv.pop(i)
         elif arg == '--':
             break
+        i += 1
 
     if genkey and not 'DJANGO_SECRET_KEY' in os.environ:
         import string
