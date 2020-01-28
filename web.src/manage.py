@@ -204,7 +204,16 @@ if __name__ == "__main__":
                 addpath.append(os.environ['PYTHONPATH'])
             os.environ['PYTHONPATH'] = os.pathsep.join(addpath)
 
-    if not 'DJANGO_SECRET_KEY' in os.environ:
+    genkey = True
+    for i in range(1, len(sys.argv)):
+        arg = sys.argv[i]
+        if arg.lower() == '--nokey':
+            genkey = False
+            sys.argv.pop(i)
+        elif arg == '--':
+            break
+
+    if genkey and not 'DJANGO_SECRET_KEY' in os.environ:
         import string
         os.environ['DJANGO_SECRET_KEY'] = ''.join(
             [ random.SystemRandom().choice(
