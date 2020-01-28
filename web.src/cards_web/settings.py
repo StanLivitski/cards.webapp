@@ -33,7 +33,10 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 import cards_web
 
 import os
+import stat
+import sys
 import warnings
+from tempfile import mkdtemp
 from urllib.parse import urlsplit
 
 from django.conf import global_settings as _global_settings
@@ -55,6 +58,14 @@ EXTERNAL_URL_PREFIX_ = ( urlsplit(EXTERNAL_URL_PREFIX, '', False)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 DEPENDENCIES_DIR = os.path.join(BASE_DIR, 'depends')
+
+# Target directory for app deployment files 
+if 'CARDS_STAGING_DIR' in os.environ:
+    STAGING_DIR = os.environ['CARDS_STAGING_DIR']
+else:
+    STAGING_DIR = os.getcwd()
+if not os.path.samefile(STAGING_DIR, os.path.dirname(BASE_DIR)):
+    STAGING_DIR = os.path.join(STAGING_DIR, os.path.basename(os.path.dirname(BASE_DIR)))
 
 # SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'DJANGO_SECRET_KEY'
@@ -192,7 +203,6 @@ USE_TZ = False
 LOCALE_PATHS = ( 'locale', )
 
 # Static files (CSS, JavaScript, Images)
-
 STATIC_URL = '/static/'
 
 if EXTERNAL_URL_PREFIX_ is not None:
@@ -204,3 +214,9 @@ if EXTERNAL_URL_PREFIX_ is not None:
 STATICFILES_DIRS = (
     ("scaler", os.path.join(DEPENDENCIES_DIR, 'scaler/src')),
 )
+
+if os.path.basename(sys.argv[0]).lower() == 'manage.py' and \
+     1 < len(sys.argv) and sys.argv[1].lower() == 'collectstatic':
+    os.makedirs(STAGING_DIR, exist_ok = True)
+    STATIC_ROOT = mkdtemp(prefix='static-', dir=STAGING_DIR)
+    os.chmod(STATIC_ROOT, stat.S_IRWXU | stat.S_IRWXG | stat.S_IXOTH | stat.S_IROTH)
