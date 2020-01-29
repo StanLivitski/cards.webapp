@@ -42,6 +42,8 @@ import abc
 import collections
 import socket
 
+from django.conf import settings
+
 class Authenticator(abc.ABC):
     """
     Interface to an object that implements the user
@@ -272,6 +274,37 @@ def local_client_authenticator(request, *args, callback_ = None, **kwargs):
         callback_(addrIsLocal, None if addrIsLocal else True)
     return addrIsLocal
 
+def parse_netloc(hostport):
+    """
+    Split a host-port production present in the URL into
+    its constituent parts: host name/address string,
+    and an optional integer port.
+
+    Raises
+    ------
+    ValueError
+        When host part is missing from the argument.
+    """
+    hostport = hostport.strip()
+    port = None
+    at = len(hostport)
+    while 0 < at:
+        at -= 1
+        if not hostport[at].isdigit():
+            break
+    if hostport and 0 <= at and ':' == hostport[at]:
+        host = hostport[:at].strip()
+        if len(hostport) > at + 1:
+            port = int(hostport[at + 1:]) 
+    else:
+        host = hostport
+    if not host:
+        raise ValueError(
+            'Invalid host:port value: %s'
+            % repr(hostport)
+        )
+    return host, port
+
 class InboundAddressEnumerator(collections.Sequence):
     """
     Contains list of names and addresses that can be used
@@ -296,7 +329,9 @@ class InboundAddressEnumerator(collections.Sequence):
     The `FACILITY` sequence is guaranteed to have at least one element:
     this host's name returned by `socket.gethostname`(). If
     `socket.fqdn`() reports a different value, it will be added
-    to the sequence as well.
+    to the sequence as well. If `EXTERNAL_URL_PREFIX` setting
+    for the Django project is present, the only element returned
+    is the host-port part of that value.
 
     Additionally, this class has static methods that provide
     network address information. Those methods are summarized
@@ -311,7 +346,7 @@ class InboundAddressEnumerator(collections.Sequence):
         Tell whether a network address belongs to a loopback device.
 
     Raises
-    ----------
+    ------
     RuntimeError
         When an attempt is made to create an additional instance of this
         type.
@@ -337,37 +372,41 @@ class InboundAddressEnumerator(collections.Sequence):
     """
     FACILITY = None
 
-    def __init__(self):
+    def __init__(self, fixed_addrport = None):
         if type(self).FACILITY is not None:
             raise RuntimeError('Class %s can only have one instance'
                                 % type(self).__name__)
         items = self._items = []
-        names = collections.OrderedDict.fromkeys(
-             (socket.getfqdn(), socket.gethostname())
-        )
-        addrs = collections.OrderedDict()
-        for name in names:
-            if name: 
-                items.append((name, None, name))
-                for addr in self.resolve(name, socket.SOCK_STREAM):
-                    addrKey = addr[1:3]
-                    if self.isLoopbackAddress(*addrKey) is False:
-                        addrs[addrKey] = addr
-        for iface in netifaces.interfaces():
-            ifaceAddrs = netifaces.ifaddresses(iface)
-            for family in (socket.AF_INET, socket.AF_INET6):
-                if family not in ifaceAddrs:
-                    continue
-                for info in ifaceAddrs[family]:
-                    addr = info['addr']
-                    if not self.isLoopbackAddress(family, addr):
-                        addrs[(family, addr)] = (
-                            ('' if iface.startswith('{') else iface + ' ')
-                            + addr,
-                            family,
-                            addr   
-                        )
-        items.extend(addrs.values())
+        if fixed_addrport is None:
+            names = collections.OrderedDict.fromkeys(
+                 (socket.getfqdn(), socket.gethostname())
+            )
+            addrs = collections.OrderedDict()
+            for name in names:
+                if name: 
+                    items.append((name, None, name))
+                    for addr in self.resolve(name, socket.SOCK_STREAM):
+                        addrKey = addr[1:3]
+                        if self.isLoopbackAddress(*addrKey) is False:
+                            addrs[addrKey] = addr
+            for iface in netifaces.interfaces():
+                ifaceAddrs = netifaces.ifaddresses(iface)
+                for family in (socket.AF_INET, socket.AF_INET6):
+                    if family not in ifaceAddrs:
+                        continue
+                    for info in ifaceAddrs[family]:
+                        addr = info['addr']
+                        if not self.isLoopbackAddress(family, addr):
+                            addrs[(family, addr)] = (
+                                ('' if iface.startswith('{') else iface + ' ')
+                                + addr,
+                                family,
+                                addr   
+                            )
+            items.extend(addrs.values())
+        else:
+            host = parse_netloc(fixed_addrport)[0]
+            items.append((host, None, host))
 
     def __len__(self):
         return len(self._items)
@@ -494,4 +533,6 @@ class InboundAddressEnumerator(collections.Sequence):
         else:
             return None
 
-InboundAddressEnumerator.FACILITY = InboundAddressEnumerator()
+InboundAddressEnumerator.FACILITY = InboundAddressEnumerator(
+    settings.EXTERNAL_URL_PREFIX_[1] if settings.EXTERNAL_URL_PREFIX_ else None
+)

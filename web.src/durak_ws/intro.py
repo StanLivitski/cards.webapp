@@ -39,8 +39,7 @@ import mapping
 from comety.django.views import ViewWithEvents
 
 import durak_ws
-from cards_web.connect import InboundAddressEnumerator, \
-    Authenticator, local_client_authenticator
+from cards_web import connect
 from durak_ws.models import PlayerCheckIn, RemoteEntity, WebGame
 from builtins import issubclass
 
@@ -144,7 +143,7 @@ class IntroView(ViewWithEvents):
         Parameters
         ----------
         setting : collections.Sequence | str
-            The new index into the `InboundAddressEnumerator.FACILITY`
+            The new index into `connect.InboundAddressEnumerator.FACILITY`
             sequence, a string with prefix ``:`` followed by externally
             visible name or address, or an empty string if such name or
             address is passed via the ``settings-connectToOther`` field.
@@ -179,26 +178,8 @@ class IntroView(ViewWithEvents):
                     'Unexpected `settings-connectToOther` value of %s'
                     % type(hostport)
                 )
-            hostport = hostport.strip()
-            port = None
-            at = len(hostport)
-            while 0 < at:
-                at -= 1
-                if not hostport[at].isdigit():
-                    break
-            if hostport and 0 <= at and ':' == hostport[at]:
-                host = hostport[:at]
-                if len(hostport) > at + 1:
-                    port = int(hostport[at + 1:]) 
-            else:
-                host = hostport
-            if not host:
-                raise ValueError(
-                    'Invalid `settings-connectToOther` value: %s'
-                    % repr(hostport)
-                )
-            self.checkIn.host = host
-            self.checkIn.port = port
+            self.checkIn.host, self.checkIn.port = \
+                connect.parse_netloc(hostport)
         else:
             raise ValueError(
                 'Unexpected `settings-connectToAddress` value: %s'
@@ -401,11 +382,11 @@ class IntroView(ViewWithEvents):
         Otherwise, the value must be a sequence of two elements: a
         fully qualified module name on the application's path, and
         the name of the authenticator class or function compliant
-        with requirements of `cards_web.connect.Authenticator`.
+        with requirements of `connect.Authenticator`.
 
         Returns
         -------
-        cards_web.connect.Authenticator | callable
+        connect.Authenticator | callable
             a reference to the configured or default authenticator
 
         Notes
@@ -414,7 +395,7 @@ class IntroView(ViewWithEvents):
             **must** support synchronous authentication mode.
         """
         if not hasattr(settings, 'CARDS_AUTHENTICATOR'):
-            return local_client_authenticator
+            return connect.local_client_authenticator
         ref = settings.CARDS_AUTHENTICATOR
         if not isinstance(ref, collections.Sequence) or \
              type(ref) is str:
@@ -424,7 +405,7 @@ class IntroView(ViewWithEvents):
         try:
             module = importlib.import_module(ref[0])
             auth = getattr(module, ref[1])
-            if issubclass(auth, Authenticator):
+            if issubclass(auth, connect.Authenticator):
                 auth = auth(*ref[2:])
         except:
             raise ValueError('CARDS_AUTHENTICATOR setting is'
@@ -565,9 +546,14 @@ class IntroView(ViewWithEvents):
         try:
             ui = checkIn.getUiDispatcher()
             ui.confirmEvents(userId)
-            serverName = request.META['SERVER_NAME']
-            # TODO: set `defaultPort` to None when it equals standard port for the protocol
-            defaultPort = request.META['SERVER_PORT']
+            defaultPort = None
+            if settings.EXTERNAL_URL_PREFIX_ is None:
+                serverName = request.META['SERVER_NAME']
+                # TODO: set `defaultPort` to None when it equals standard port for the protocol
+                defaultPort = request.META['SERVER_PORT']               
+            else:
+                serverName, defaultPort = connect.parse_netloc(
+                    settings.EXTERNAL_URL_PREFIX_[1])
             inboundAddresses = self._getInboundAddresses(serverName)
             playerNo = checkIn.tokens[userId]
             countRange = list(WebGame.getPlayerCountRange(checkIn.gameSettings))
@@ -700,11 +686,11 @@ class IntroView(ViewWithEvents):
     @classmethod
     def _getInboundAddresses(class_, serverName = None):
         """
-        Prepare contents of `models.InboundAddressEnumerator` for
+        Prepare contents of `connect.InboundAddressEnumerator` for
         display on the web form.
 
         This method generates a tuple of `(index, label)` tuples
-        from `models.InboundAddressEnumerator` contents and allows
+        from `connect.InboundAddressEnumerator` contents and allows
         for appending the ``SERVER_NAME`` value from an HTTP request
         if it differs from the local host's name. The index of such
         ``SERVER_NAME`` string is that string itself prefixed with
@@ -714,7 +700,7 @@ class IntroView(ViewWithEvents):
             inboundAddresses = []
             uniqueInboundAddresses = set()
             i = 0
-            for addrTuple in InboundAddressEnumerator.FACILITY:
+            for addrTuple in connect.InboundAddressEnumerator.FACILITY:
                 inboundAddresses.append((i, addrTuple[0]))
                 uniqueInboundAddresses.add(addrTuple[1:3])
                 i += 1
@@ -747,11 +733,14 @@ class IntroView(ViewWithEvents):
             The application's URL prefix.
         """
 
-        protocol = 'https' if request.is_secure() else 'http'
+        if settings.EXTERNAL_URL_PREFIX_ is None:
+            protocol = 'https' if request.is_secure() else 'http'
+        else:
+            protocol = settings.EXTERNAL_URL_PREFIX_[0]
         if type(checkin.host) is str:
             netloc = checkin.host
         else:
-            addrInfo = InboundAddressEnumerator.FACILITY[checkin.host]
+            addrInfo = connect.InboundAddressEnumerator.FACILITY[checkin.host]
             netloc = addrInfo[2]
             if socket.AF_INET6 == addrInfo[1]:
                 netloc = "[%s]" % netloc
