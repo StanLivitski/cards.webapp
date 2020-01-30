@@ -201,8 +201,13 @@ class IntroView(ViewWithEvents):
         userId = request.session[IntroView.PLAYER_IN_SESSION]
         checkIn = PlayerCheckIn.FACILITIES[userId]
         try:
-            # TODO: set `defaultPort` to None when it equals standard port for the protocol
-            defaultPort = request.META['SERVER_PORT']
+            defaultPort = None
+            if settings.EXTERNAL_URL_PREFIX_ is None:
+                # TODO: set `defaultPort` to None when it equals standard port for the protocol
+                defaultPort = request.META['SERVER_PORT']               
+            else:
+                defaultPort = connect.parse_netloc(
+                    settings.EXTERNAL_URL_PREFIX_[1])[1]
             seat = int(request.GET['seat'])
             if 0 == seat or 0 != checkIn.tokens[userId]:
                 log = logging.getLogger(IntroView.__module__)
