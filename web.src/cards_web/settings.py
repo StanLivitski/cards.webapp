@@ -77,8 +77,8 @@ else:
                   ' may fail.' % SECRET_KEY)
     SECRET_KEY = _global_settings.SECRET_KEY
 
-# TODO: SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+# SECURITY WARNING: don't run with debug turned on in production!
+DEBUG = False
 
 ALLOWED_HOSTS = [ '*' ]
 
