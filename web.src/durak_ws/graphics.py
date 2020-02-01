@@ -37,8 +37,10 @@ from django.http import HttpRequest, HttpResponse, HttpResponseNotFound, \
     # HttpResponsePermanentRedirect, StreamingHttpResponse
 from django.shortcuts import render
 from django.utils.cache import patch_response_headers
+from django.utils.decorators import method_decorator
 from django.utils.http import urlencode   
 from django.views.decorators.cache import cache_page
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 from django.views.generic import View
 from xml.sax._exceptions import SAXParseException
 
@@ -97,6 +99,8 @@ def cache_streaming_page(max_age):
         return wrapper
     return wrap
 
+@method_decorator([ xframe_options_sameorigin,
+                   disable_session ], name='dispatch')
 class SVGView(View):
 
     http_method_names = [ 'get' ]
@@ -112,11 +116,12 @@ class SVGView(View):
 
     @classmethod
     def as_view(cls, **initkwargs):
-        return disable_session(cache_page(cls.AGE_GRAPHICS_CACHE)(
-                super().as_view(**initkwargs)))
+        return cache_page(cls.AGE_GRAPHICS_CACHE)(
+                super().as_view(**initkwargs))
 
 
 # TODO: convert to a class-based view derived from `SVGView` and remove the template
+@xframe_options_sameorigin
 @disable_session
 @cache_page(SVGView.AGE_GRAPHICS_CACHE)
 def dimmer_view(request, style):

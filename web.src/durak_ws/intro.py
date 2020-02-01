@@ -45,7 +45,7 @@ from builtins import issubclass
 
 class IntroView(ViewWithEvents):
     """
-    Renders a page that allows an authenticated user to create
+    Renders page that allows an authenticated user to create
     a game and other players to join it over the web and provides
     asynchronous updates to users of that page.
 

@@ -27,7 +27,9 @@ from django.http.response import \
     JsonResponse, HttpResponse, \
     HttpResponseForbidden, HttpResponseServerError # HttpResponseNotFound
 from django.shortcuts import render
+from django.utils.decorators import method_decorator
 from django.utils.translation import ugettext as _
+from django.views.decorators.clickjacking import xframe_options_sameorigin
 
 from comety import FilterByTargetUser
 from comety.django.views import ViewWithEvents, JSONEncoder
@@ -38,45 +40,23 @@ import comety
 import collections
 
 """
-    <Short summary>
+    The back-end for application's chat facilities.
     
     <Extended description>
 
     Key elements
     ------------
-    <python_name> : <One-line summary of a class, exception,
-    function, or any other object exported by the module and
-    named on this line.>
-    <The docstring for a package's ``__init__`` module should,
-    in most cases list the modules and subpackages exported by
-    the package here. >
-    ...
-
-
-[    See Also
-    --------
-    <python_name> : <Description of code named on this line
-    and how it is related to the documented module.>
-    ... ]
-
-[    Notes
-    -----
-    <Additional information about the code, possibly including
-    discussion of the algorithms. Follow it with a 'References'
-    section if citing any references.>
-]
-
-[    Examples
-    --------
-    <In the doctest format, illustrate how to use this module.>
-]
+    ChatView : enables admitted users to send and receive
+        text messages.
 """
 
+@method_decorator(xframe_options_sameorigin, name='dispatch')
 class ChatView(ViewWithEvents):
     """
-    <Short summary>
+    Renders page that allows admitted users to send and receive
+    text messages.
     
-    <Extended description>
+    The chat page is usually shown in a frame ...
     
 [    Parameters
     --------------------
