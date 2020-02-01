@@ -67,7 +67,9 @@ else:
 if not os.path.samefile(STAGING_DIR, os.path.dirname(BASE_DIR)):
     STAGING_DIR = os.path.join(STAGING_DIR, os.path.basename(os.path.dirname(BASE_DIR)))
 
-# SECURITY WARNING: keep the secret key used in production secret!
+# Security
+
+# WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'DJANGO_SECRET_KEY'
 if SECRET_KEY in os.environ:
     SECRET_KEY = os.environ[SECRET_KEY]
@@ -77,10 +79,16 @@ else:
                   ' may fail.' % SECRET_KEY)
     SECRET_KEY = _global_settings.SECRET_KEY
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-
+# This must be on to serve static files on a local network
+# WARNING: turn this off and deploy static files to a web server when serving the Internet 
+DEBUG = True
 ALLOWED_HOSTS = [ '*' ]
+
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_BROWSER_XSS_FILTER = True
+X_FRAME_OPTIONS = 'DENY'
+
+# Logging
 
 LOGGING = {
     'version': 1,
@@ -96,6 +104,8 @@ LOGGING = {
     },
 }
 
+# Sessions
+
 CACHES = {
     'default': {
         'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
@@ -107,16 +117,16 @@ SESSION_ENGINE = "django.contrib.sessions.backends.cache"
 
 SESSION_COOKIE_AGE = 10800
 
-# Application definition
+# Application components
+
+# TODO: clean this up
 INSTALLED_APPS = (
     'durak_ws.Application',
     'comety.django',
-# TODO: clean this up or use to maintain players' names/passwords
-#    'django.contrib.admin',
     'django.contrib.auth', # required by Django 1.9+
     'django.contrib.contenttypes',
     'django.contrib.sessions',
-    'django.contrib.messages',
+#    'django.contrib.messages',
     'django.contrib.staticfiles',
 )
 
@@ -144,8 +154,7 @@ MIDDLEWARE = (
     'django.middleware.locale.LocaleMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-#    'django.contrib.auth.middleware.AuthenticationMiddleware',
-    'django.contrib.messages.middleware.MessageMiddleware',
+#    'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'django.middleware.security.SecurityMiddleware',
 )
@@ -160,23 +169,19 @@ TEMPLATES = [
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
-                'django.template.context_processors.debug',
+#                'django.template.context_processors.debug',
                 'django.template.context_processors.request',
-                'django.contrib.auth.context_processors.auth',
-                'django.contrib.messages.context_processors.messages',
+#                'django.contrib.auth.context_processors.auth',
+#                'django.contrib.messages.context_processors.messages',
             ],
         },
     },
 ]
 
-# TODO: eliminate?
 #WSGI_APPLICATION = 'cards_web.wsgi.application'
-
 
 # Database
 
-# TODO: get rid of this if our service doesn't use a database
-#       otherwise, document (and script?) any database initialization
 DB_DIR = os.path.expanduser('~')
 if '~' == DB_DIR:
     raise RuntimeError("Current user's home directory is not defined")
@@ -203,6 +208,7 @@ USE_TZ = False
 LOCALE_PATHS = ( 'locale', )
 
 # Static files (CSS, JavaScript, Images)
+
 STATIC_URL = '/static/'
 
 if EXTERNAL_URL_PREFIX_ is not None:
