@@ -36,6 +36,7 @@ import os
 import stat
 import sys
 import warnings
+
 from tempfile import mkdtemp
 from urllib.parse import urlsplit
 
@@ -96,11 +97,35 @@ LOGGING = {
     'handlers': {
         'console': {
             'class': 'logging.StreamHandler',
+            'formatter': 'django.server',
+        },
+        'django.server': {
+            'class': 'logging.FileHandler',
+            'formatter': 'django.server',
+            'filename': os.environ['CARDS_WEB_TRACE_FILE']
+        } if os.environ.get('CARDS_WEB_TRACE_FILE') else {
+            'class': 'logging.NullHandler'
         },
     },
     'root': {
         'handlers': ['console'],
-        'level': os.getenv('CARDS_WEB_LOG_LEVEL', 'INFO'),
+        'level': os.getenv('CARDS_WEB_LOG_LEVEL', 'WARNING'),
+    },
+    'loggers': {
+        'django': {
+            'handlers': [],
+        },
+        'django.server': {
+            'handlers': ['django.server'],
+            'level': 'INFO',
+            'propagate': False,
+        },
+    },
+    'formatters': {
+        'django.server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s %(name)s] %(message)s',
+        }
     },
 }
 
