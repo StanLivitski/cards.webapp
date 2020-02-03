@@ -443,11 +443,6 @@ class IntroView(ViewWithEvents):
 
         log = logging.getLogger(type(self).__module__)
         try:
-#             if settings.DEBUG:
-#                 if request.user.is_authenticated:
-#                     log.debug('User is authenticated as %s', request.user.username)
-#                 else:
-#                     log.debug('User is not authenticated!')
             authenticated = (self.getPAM())(request, *args)   
             admitted = None
             token = request.session.get(self.PLAYER_IN_SESSION)

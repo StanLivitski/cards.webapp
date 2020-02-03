@@ -160,24 +160,6 @@ INSTALLED_APPS = (
     'django.contrib.staticfiles',
 )
 
-# Monkey patch of django.contrib.staticfiles to allow browsers to cache them
-#===============================================================================
-# import django.contrib.staticfiles.views
-# from django.utils.cache import patch_response_headers
-# 
-# _static_view_internal = None
-# 
-# def static_view(request, path, insecure=False, **kwargs):
-#     response = _static_view_internal(request, path, insecure=insecure, **kwargs)
-#     patch_response_headers(response)
-#     return response
-# 
-# if _static_view_internal is None:
-#     _static_view_internal = django.contrib.staticfiles.views.serve
-#     django.contrib.staticfiles.views.serve = static_view
-#===============================================================================
-# End monkey patch of django.contrib.staticfiles
-
 # TODO: clean this up
 MIDDLEWARE = (
     'django.contrib.sessions.middleware.SessionMiddleware',
