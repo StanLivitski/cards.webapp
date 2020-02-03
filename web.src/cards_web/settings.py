@@ -32,6 +32,7 @@ https://docs.djangoproject.com/en/1.11/ref/settings/
 
 import cards_web
 
+import logging
 import os
 import stat
 import sys
@@ -94,19 +95,6 @@ X_FRAME_OPTIONS = 'DENY'
 LOGGING = {
     'version': 1,
     'disable_existing_loggers': False,
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'django.server',
-        },
-        'django.server': {
-            'class': 'logging.FileHandler',
-            'formatter': 'django.server',
-            'filename': os.environ['CARDS_WEB_TRACE_FILE']
-        } if os.environ.get('CARDS_WEB_TRACE_FILE') else {
-            'class': 'logging.NullHandler'
-        },
-    },
     'root': {
         'handlers': ['console'],
         'level': os.getenv('CARDS_WEB_LOG_LEVEL', 'WARNING'),
@@ -117,14 +105,31 @@ LOGGING = {
         },
         'django.server': {
             'handlers': ['django.server'],
-            'level': 'INFO',
+            'level': logging.INFO if os.environ.get('CARDS_WEB_TRACE_FILE') else logging.CRITICAL,
             'propagate': False,
         },
     },
-    'formatters': {
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'cards_web',
+        },
         'django.server': {
+            'class': 'logging.FileHandler',
+            'formatter': 'django.server',
+            'filename': os.environ['CARDS_WEB_TRACE_FILE']
+        } if os.environ.get('CARDS_WEB_TRACE_FILE') else {
+            'class': 'logging.NullHandler'
+        },
+    },
+    'formatters': {
+        'cards_web': {
             '()': 'django.utils.log.ServerFormatter',
             'format': '[%(server_time)s %(name)s] %(message)s',
+        },
+        'django.server': {
+            '()': 'django.utils.log.ServerFormatter',
+            'format': '[%(server_time)s %(request)s] %(message)s',
         }
     },
 }
