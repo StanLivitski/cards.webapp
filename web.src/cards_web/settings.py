@@ -125,7 +125,7 @@ LOGGING = {
     'formatters': {
         'cards_web': {
             '()': 'django.utils.log.ServerFormatter',
-            'format': '[%(server_time)s %(name)s] %(message)s',
+            'format': '[%(asctime)s %(levelname)s %(name)s] %(message)s',
         },
         'django.server': {
             '()': 'django.utils.log.ServerFormatter',
